@@ -444,6 +444,47 @@
   }
 
 
+
+  function initSocialPlatformHover(){
+    // Phase 4.6: the real site drives each platform card's hover state via
+    // React mouse handlers, not a CSS :hover/group-hover rule - confirmed by
+    // diffing the static capture (no hover-variant classes anywhere on the
+    // card markup). Reproduced here with the same technique: each card
+    // already carries its own platform brand color inline (the accent-bar
+    // div's background-color), so this reads that color from the DOM at
+    // runtime instead of hardcoding a per-platform color table - works for
+    // all 8 cards (X, YouTube, Instagram, Discord, Reddit, LinkedIn,
+    // Facebook, TikTok) without guessing brand colors.
+    if(!document.body.classList.contains('mentra-vn-socials')) return;
+    qsa('a.group.relative.rounded-2xl').forEach(card=>{
+      const accent=card.querySelector(':scope > div');
+      if(!accent) return;
+      const style=accent.getAttribute('style')||'';
+      if(!/scaleX/.test(style)) return;
+      const color=accent.style.backgroundColor;
+      if(!color) return;
+      const iconBox=card.querySelector('.flex.items-center.gap-4 > div');
+      const iconBaseBg=iconBox?iconBox.style.backgroundColor:'';
+      const iconHoverBg=/^#([0-9a-fA-F]{6})[0-9a-fA-F]{2}$/.test(iconBaseBg)?iconBaseBg.slice(0,7)+'26':iconBaseBg;
+      const title=card.querySelector('h3');
+      const arrow=card.querySelector('svg:last-of-type');
+      const set=(on)=>{
+        card.style.transform=on?'translateY(-3px)':'translateY(0)';
+        card.style.boxShadow=on?'0 14px 34px rgba(15,23,42,.10)':'0 1px 3px rgba(0,0,0,.04)';
+        card.style.borderColor=on?color:'var(--border-subtle)';
+        accent.style.opacity=on?'1':'0';
+        accent.style.transform=on?'scaleX(1)':'scaleX(0.3)';
+        if(iconBox&&iconHoverBg) iconBox.style.backgroundColor=on?iconHoverBg:iconBaseBg;
+        if(title) title.style.color=on?color:'var(--ink-primary)';
+        if(arrow){arrow.style.color=on?color:'var(--ink-disabled)';arrow.style.transform=on?'translateX(4px)':'translateX(0)';}
+      };
+      card.addEventListener('mouseenter',()=>set(true));
+      card.addEventListener('mouseleave',()=>set(false));
+      card.addEventListener('focus',()=>set(true));
+      card.addEventListener('blur',()=>set(false));
+    });
+  }
+
   function initPdpAccordion(){
     qsa('.pdp-accordion-item').forEach(item=>{
       const trigger=qs('.pdp-accordion-trigger',item);
@@ -524,5 +565,5 @@
     apply();
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();});
+  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();});
 })();
