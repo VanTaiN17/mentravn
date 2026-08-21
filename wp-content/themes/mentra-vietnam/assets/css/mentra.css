@@ -325,6 +325,15 @@ body.mentra-menu-open{overflow:hidden}
 .pdp-accordion-panel>div{overflow:hidden}
 .pdp-accordion-item.is-open .pdp-accordion-panel{grid-template-rows:1fr;opacity:1}
 
+/* --- MentraOS page --- */
+.mentra-vn-mentra-os .os-badge-grid{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.mentra-vn-mentra-os .green-grid-promo-section{padding:0 var(--container-px)}
+.mentra-vn-mentra-os .green-grid-promo{position:relative;overflow:hidden;border-radius:28px;padding:56px 40px;background:linear-gradient(135deg,#063a24,#0b2318 65%,#081c14);text-align:center}
+.mentra-vn-mentra-os .green-grid-promo__grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:36px 36px;-webkit-mask-image:radial-gradient(circle at 50% 40%,#000 0%,transparent 75%);mask-image:radial-gradient(circle at 50% 40%,#000 0%,transparent 75%)}
+.mentra-vn-mentra-os .green-grid-promo>div:not(.green-grid-promo__grid){position:relative;z-index:1}
+.mentra-vn-mentra-os .os-download-promo__actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:28px}
+@media(min-width:768px){.mentra-vn-mentra-os .green-grid-promo{padding:72px 64px;text-align:left;display:grid;grid-template-columns:1fr auto;align-items:center;gap:32px}.mentra-vn-mentra-os .os-download-promo__actions{align-items:flex-end}}
+
 /* Desktop nav flyout — matched to the compact live Mentra header. */
 @media(min-width:1024px){
   .site-header>.hidden.lg\:block>.mx-auto.grid{height:60px!important}
