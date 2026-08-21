@@ -161,6 +161,26 @@ function mentra_vn_document_close() {
     ?></body></html><?php
 }
 
+// Legal pages previously existed at two competing slugs: an unlinked
+// placeholder-stub page, and the canonical slug used by nav/footer + the
+// static-source map. Redirect the stub slugs to the canonical ones so only
+// one page is publicly reachable per policy, per Phase 2 legal routing fix.
+function mentra_vn_legal_slug_redirects() {
+    if (!is_page()) { return; }
+    $map = [
+        'chinh-sach-bao-mat' => 'chinh-sach-quyen-rieng-tu',
+        'dieu-khoan' => 'dieu-khoan-dich-vu',
+        'van-chuyen' => 'chinh-sach-van-chuyen',
+        'doi-tra' => 'chinh-sach-doi-tra',
+    ];
+    $slug = get_post_field('post_name', get_queried_object_id());
+    if (isset($map[$slug])) {
+        wp_safe_redirect(home_url('/' . $map[$slug] . '/'), 301);
+        exit;
+    }
+}
+add_action('template_redirect', 'mentra_vn_legal_slug_redirects');
+
 // Remove default block styles on the source-mirror templates so they cannot alter the supplied design.
 add_action('wp_enqueue_scripts', function(){
     wp_dequeue_style('wp-block-library');
