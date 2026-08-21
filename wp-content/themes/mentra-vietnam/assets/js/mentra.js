@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
   'use strict';
   const qs=(s,r=document)=>r.querySelector(s), qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const root=document.documentElement;
@@ -358,6 +358,7 @@
     });
 
     const selected=tabs.find(t=>t.getAttribute('aria-selected')==='true')||tabs[0];
+    if(selected) selected.classList.add('is-active');
     render(selected);
   }
 
