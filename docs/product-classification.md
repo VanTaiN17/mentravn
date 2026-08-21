@@ -17,3 +17,21 @@ Method: inspected `WGET_REFERENCE` (`D:\Workspace\website\mentra-vn\mentraglass.
 Matches the expected default exactly: **Mentra Live → WooCommerce Product; Even Realities, NIMO, Prescription lenses → remain static pages.** No disagreement with the expected classification — the wget source data provides an unambiguous, mechanical signal (presence/absence of a Shopify `product` object) that lines up cleanly with which items have real, trackable inventory versus which are informational/partner/service pages.
 
 No changes are made to `/even-realities/`, `/nimo/`, or `/trong-kinh/` in this phase — their existing design and content (fixed for routing/translation in Phase 2) are preserved as-is.
+
+## Addendum — Phase 4.6: Infinity Cable
+
+Date: 2026-08-21
+
+Phase 4.5 mistakenly modeled "Infinity Cable" as an anchor/section (`/mentra-live/#charging`) inside the Mentra Live page. The owner corrected this: Infinity Cable is a real, separate Mentra product page (`https://mentraglass.com/products/mentra-live-charging-cable`), not part of Mentra Live.
+
+Re-inspected per the same method as above, this time against the **current public site** (the WGET_REFERENCE capture predates this product and has no `products/mentra-live-charging-cable` page at all — confirmed by directory listing):
+
+| Item | Physical SKU owned by Mentra | Sold by this site | Inventory meaningful | Recommended system | Reason |
+|---|---|---|---|---|---|
+| **Infinity Cable for Mentra Live** | Yes | Yes (informationally) | Yes (binary in/out of stock) | **WOOCOMMERCE PRODUCT** | Confirmed real Shopify product object embedded in the live page's loader JSON: `gid://shopify/Product/9286483280124`, handle `mentra-live-charging-cable`, title "Infinity Cable for Mentra Live", one variant (`gid://shopify/ProductVariant/48952997511420`, `availableForSale:true`). A real, single-SKU physical accessory Mentra sells — same reasoning as Mentra Live in Phase 3. |
+
+**SKU**: the source loader JSON exposes no literal SKU string (only the numeric GID), so a documented stable internal SKU is used instead — `MENTRA-INFINITY-CABLE` — per the phase instructions' explicit guidance for this exact situation. Not a variable product (the source has exactly one variant, always available), so `manage_stock=false`, `stock_status=instock`, no attributes/variations invented.
+
+**Canonical URL**: `/products/mentra-live-charging-cable/` (matches the real site's own `/products/{handle}/` convention), implemented as a WP Page + `page-mentra-live-charging-cable.php` template + a scoped rewrite/permalink filter — see `docs/phase-4.6-report.md`. The WooCommerce product's own `/product/infinity-cable-mentra-live/` URL 301-redirects there via the same `_mentra_vn_canonical_url` mechanism Phase 3 built for Mentra Live.
+
+Catalog-only rules unchanged: no price, no quantity, no Add to Cart, no checkout. CTA is "Liên hệ mua hàng" → `/lien-he/?topic=sales`, same as Mentra Live.

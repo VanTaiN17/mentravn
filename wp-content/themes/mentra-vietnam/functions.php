@@ -394,3 +394,53 @@ function mentra_vn_legacy_article_redirect() {
     exit;
 }
 add_action('template_redirect', 'mentra_vn_legacy_article_redirect', 4);
+
+// ==========================================================================
+// Phase 4.6: Infinity Cable product page.
+// The owner corrected a Phase 4.5 mistake: Infinity Cable is a real Mentra
+// product page (https://mentraglass.com/products/mentra-live-charging-cable,
+// gid://shopify/Product/9286483280124), not an anchor/section inside Mentra
+// Live. It's a normal WP Page (slug mentra-live-charging-cable, created by
+// maybe_create_pages()) rendered by page-mentra-live-charging-cable.php via
+// WordPress's own template hierarchy - only its URL needs a rewrite, to
+// match the real site's /products/{handle}/ convention instead of
+// WordPress's default flat /mentra-live-charging-cable/ page URL.
+// ==========================================================================
+
+function mentra_vn_register_product_page_rewrite() {
+    add_rewrite_rule('^products/mentra-live-charging-cable/?$', 'index.php?pagename=mentra-live-charging-cable', 'top');
+}
+add_action('init', 'mentra_vn_register_product_page_rewrite', 10);
+
+function mentra_vn_maybe_flush_product_page_rewrite() {
+    if (get_option('mentra_vn_product_page_rewrite_v1')) { return; }
+    flush_rewrite_rules();
+    update_option('mentra_vn_product_page_rewrite_v1', 1);
+}
+add_action('init', 'mentra_vn_maybe_flush_product_page_rewrite', 11);
+
+// Scoped to this one page only (by post_type + post_name), not a general
+// Page-permalink rewrite - every other Page keeps its default WordPress URL.
+// Both 'page_link' and '_get_page_link' pass the post ID (int), not a
+// WP_Post object, as their second argument - unlike Phase 4's
+// post_type_link/post_link filters, which do receive a WP_Post.
+function mentra_vn_product_page_permalink($link, $post_id) {
+    $post = get_post($post_id);
+    if (!$post || $post->post_type !== 'page' || $post->post_name !== 'mentra-live-charging-cable') { return $link; }
+    return home_url('/products/mentra-live-charging-cable/');
+}
+add_filter('page_link', 'mentra_vn_product_page_permalink', 10, 2);
+add_filter('_get_page_link', 'mentra_vn_product_page_permalink', 10, 2);
+
+// The default WordPress /mentra-live-charging-cable/ page URL must not
+// remain a second, non-canonical route to the same content once the real
+// canonical /products/mentra-live-charging-cable/ URL exists (same
+// canonical-URL principle Phase 3 applied to the WooCommerce product URL).
+function mentra_vn_infinity_cable_canonical_redirect() {
+    if (!is_page('mentra-live-charging-cable')) { return; }
+    $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+    if ($path === 'products/mentra-live-charging-cable') { return; }
+    wp_safe_redirect(home_url('/products/mentra-live-charging-cable/'), 301);
+    exit;
+}
+add_action('template_redirect', 'mentra_vn_infinity_cable_canonical_redirect', 5);

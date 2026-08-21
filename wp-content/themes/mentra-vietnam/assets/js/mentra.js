@@ -67,7 +67,7 @@
           {title:'SẢN PHẨM',links:[['Mentra Live','mentra-live/']]},
           {title:'PHỤ KIỆN',links:[
             ['Tròng kính theo độ','trong-kinh/'],
-            ['Infinity Cable','mentra-live/#charging']
+            ['Infinity Cable','products/mentra-live-charging-cable/']
           ]},
           {title:'KÍNH ĐƯỢC HỖ TRỢ',links:[
             ['Even Realities G1 & G2','even-realities/'],
