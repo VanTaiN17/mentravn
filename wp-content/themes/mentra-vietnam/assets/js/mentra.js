@@ -1,4 +1,4 @@
-(function(){
+﻿(function(){
   'use strict';
   const qs=(s,r=document)=>r.querySelector(s), qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const root=document.documentElement;
@@ -287,6 +287,23 @@
         ['Hộp sạc có được hỗ trợ không?','Mentra Live hỗ trợ hộp sạc 2.200 mAh và cáp sạc khi đang đeo cho các phiên sử dụng dài.'],
         ['Có tròng kính theo độ không?','Có. Mentra Live được thiết kế để hỗ trợ giải pháp tròng kính theo độ; xem trang Tròng kính để biết thêm chi tiết.'],
         ['Tôi cần báo giá cho doanh nghiệp thì làm thế nào?','Với nhu cầu số lượng lớn hoặc triển khai doanh nghiệp, hãy sử dụng biểu mẫu Liên hệ kinh doanh để nhận tư vấn phù hợp.']
+      ],
+      'comparison':[
+        ['Kính thông minh nào tốt nhất năm 2026?','Lựa chọn tốt nhất phụ thuộc nhu cầu. Với phát triển mã nguồn mở, quyền riêng tư và thời lượng pin cả ngày, Mentra Live là lựa chọn nổi bật. Với người dùng gắn chặt hệ sinh thái Meta, Meta Ray-Ban có lợi thế tích hợp Facebook/Instagram.'],
+        ['Mentra Live so với Meta Ray-Ban như thế nào?','Mentra Live cung cấp thời lượng pin hơn 12 giờ so với 8 giờ của Meta, trọng lượng nhẹ hơn chỉ 43g so với 54g, sở hữu kho ứng dụng Miniapp Store đầy đủ, SDK mã nguồn mở và tôn trọng quyền riêng tư của bạn. Cả hai đều có giá khởi điểm từ , nhưng Mentra đem lại cho bạn nhiều tự do và tính năng hơn.'],
+        ['Kính thông minh nào có thời lượng pin tốt nhất?','Mentra Live cung cấp thời lượng pin hơn 12 giờ kèm theo hộp sạc 2200mAh, so với 8 giờ của Meta Ray-Ban. Mentra cũng hỗ trợ cáp pin cấp nguồn liên tục cho việc livestream rảnh tay không giới hạn.'],
+        ['Kính thông minh có đáng mua không?','Kính thông minh hoàn toàn đáng giá đối với nhà sáng tạo nội dung, nhà phát triển và bất kỳ ai muốn sử dụng trợ lý AI rảnh tay. Những người phát trực tiếp đặc biệt hưởng lợi từ góc nhìn thứ nhất (POV) trực tiếp lên YouTube và Twitch với Mentra Live.']
+      ],
+      'features':[
+        ['Tôi có thể phát triển ứng dụng cho kính thông minh không?','Chỉ có Mentra cung cấp SDK hoàn toàn mã nguồn mở để xây dựng các ứng dụng kính thông minh. Với MentraOS, bạn có thể tạo ứng dụng bằng TypeScript hoạt động trên nhiều nền tảng kính, bao gồm Mentra Live, Even Realities và Vuzix.'],
+        ['Tôi có thể phát trực tiếp (livestream) đến những nền tảng nào?','Mentra Live hỗ trợ phát trực tiếp đến bất kỳ máy chủ RTMP nào — bao gồm YouTube, Twitch, X, TikTok, Instagram và nhiều nền tảng khác. Trong khi đó, Meta Ray-Ban bị giới hạn chỉ cho phép phát lên Facebook và Instagram.'],
+        ['Những trợ lý AI nào được hỗ trợ?','Mentra Live tương thích và hoạt động tốt với ChatGPT, Claude cũng như các mô hình AI tùy chỉnh khác. Meta Ray-Ban chỉ hoạt động độc quyền với Meta AI. Với Mentra, sự lựa chọn AI là của bạn.'],
+        ['Kính thông minh có dùng được với tròng kính cận/viễn/loạn không?','Có, cả Mentra Live và Meta Ray-Ban đều hỗ trợ tròng kính theo độ. Với Mentra, bạn có thể đặt mua phiên bản hỗ trợ lắp tròng kính cận hoặc mang gọng kính đến các cửa hàng kính mắt địa phương để lắp tròng phù hợp.']
+      ],
+      'privacy-&-open-source':[
+        ['Mentra Live có riêng tư không?','Mentra xử lý dữ liệu hoàn toàn cục bộ trên thiết bị của bạn và cam kết không bán dữ liệu người dùng. Mô hình kinh doanh của Meta được xây dựng trên việc thu thập dữ liệu và quảng cáo. Với Mentra, dữ liệu của bạn nằm trọn trong tay bạn.'],
+        ['Mã nguồn mở có ý nghĩa gì đối với kính thông minh?','MentraOS hoàn toàn mã nguồn mở dưới giấy phép MIT. Điều này có nghĩa là bất kỳ ai cũng có thể kiểm tra, sửa đổi và phân phối mã nguồn. Bạn hoàn toàn làm chủ trải nghiệm của mình — không bị khóa phần cứng, không có hệ sinh thái đóng.'],
+        ['Tôi có thể tự xây dựng ứng dụng riêng cho Mentra Live không?','Chắc chắn rồi. MentraOS và bộ SDK hoàn toàn mở. Các nhà phát triển có thể tự do xây dựng các ứng dụng bằng TypeScript hoạt động đồng bộ trên mọi thiết bị kính thông minh được hỗ trợ.']
       ]
     };
 
@@ -296,7 +313,7 @@
 
     const slugFor=(tab)=>{
       const id=tab.id||'';
-      return id.replace(/^home-faq-tab-/,'').toLowerCase();
+      return id.replace(/^faq-tab-/,'').replace(/^home-faq-tab-/,'').toLowerCase();
     };
     const render=(tab)=>{
       const slug=slugFor(tab);
