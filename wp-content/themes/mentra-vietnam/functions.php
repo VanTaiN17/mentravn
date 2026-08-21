@@ -36,6 +36,8 @@ add_action('wp_enqueue_scripts', 'mentra_vn_assets');
 
 function mentra_vn_source_map() {
     return [
+        'tai-ung-dung' => 'get',
+        'get' => 'get',
         'mentra-os' => 'OS',
         'os' => 'OS',
         'mentra-live' => 'live',
@@ -192,7 +194,7 @@ add_action('template_redirect', 'mentra_vn_legal_slug_redirects');
 function mentra_vn_get_mentra_redirect() {
     $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
     if ($path === 'get-mentra') {
-        wp_safe_redirect(home_url('/lien-he/?topic=sales'), 301);
+        wp_safe_redirect(home_url('/tai-ung-dung/'), 301);
         exit;
     }
 }

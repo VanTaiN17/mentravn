@@ -55,7 +55,7 @@
         groups:[
           {title:'NỀN TẢNG',links:[
             ['MentraOS','mentra-os/'],
-            ['Tải ứng dụng','https://mentraglass.com/get-mentra'],
+            ['Tải ứng dụng','tai-ung-dung/'],
             ['Cổng nhà phát triển','https://console.mentraglass.com',true],
             ['GitHub','https://github.com/Mentra-Community/MentraOS',true]
           ]}
