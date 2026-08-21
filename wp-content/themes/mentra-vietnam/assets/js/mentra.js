@@ -465,16 +465,23 @@
       if(!color) return;
       const iconBox=card.querySelector('.flex.items-center.gap-4 > div');
       const iconBaseBg=iconBox?iconBox.style.backgroundColor:'';
-      const iconHoverBg=/^#([0-9a-fA-F]{6})[0-9a-fA-F]{2}$/.test(iconBaseBg)?iconBaseBg.slice(0,7)+'26':iconBaseBg;
+      const rgb=color.match(/\d+/g);
+      const borderColorHover=rgb?`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.18)`:color;
+      const bgCardHover=rgb?`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.02)`:color;
+      const shadowCardHover=rgb?`0 12px 32px rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.08), 0 4px 12px rgba(0,0,0,0.04)`:'0 1px 3px rgba(0,0,0,0.04)';
       const title=card.querySelector('h3');
       const arrow=card.querySelector('.flex.items-center.gap-4 > svg');
       const set=(on)=>{
-        card.style.transform=on?'translateY(-3px)':'translateY(0)';
-        card.style.boxShadow=on?'0 14px 34px rgba(15,23,42,.10)':'0 1px 3px rgba(0,0,0,.04)';
-        card.style.borderColor=on?color:'var(--border-subtle)';
+        card.style.transform=on?'translateY(-4px)':'translateY(0)';
+        card.style.boxShadow=on?shadowCardHover:'0 1px 3px rgba(0,0,0,0.04)';
+        card.style.borderColor=on?borderColorHover:'var(--border-subtle)';
+        card.style.backgroundColor=on?bgCardHover:'var(--surface-0)';
         accent.style.opacity=on?'1':'0';
         accent.style.transform=on?'scaleX(1)':'scaleX(0.3)';
-        if(iconBox&&iconHoverBg) iconBox.style.backgroundColor=on?iconHoverBg:iconBaseBg;
+        if(iconBox) {
+          iconBox.style.backgroundColor=on?color:iconBaseBg;
+          iconBox.style.color=on?'#ffffff':color;
+        }
         if(title) title.style.color=on?color:'var(--ink-primary)';
         if(arrow){arrow.style.color=on?color:'var(--ink-disabled)';arrow.style.transform=on?'translateX(4px)':'translateX(0)';}
       };
