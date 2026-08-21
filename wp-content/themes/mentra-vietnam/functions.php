@@ -194,6 +194,15 @@ function mentra_vn_get_mentra_redirect() {
 }
 add_action('template_redirect', 'mentra_vn_get_mentra_redirect');
 
+// Frontend content is Vietnamese, but the site's WP locale (and thus
+// language_attributes()) is still en_US. Force the correct document
+// language on the public frontend only, without touching wp-admin.
+function mentra_vn_frontend_lang_attributes($output) {
+    if (is_admin()) { return $output; }
+    return preg_replace('/lang="[^"]*"/', 'lang="vi-VN"', $output, 1);
+}
+add_filter('language_attributes', 'mentra_vn_frontend_lang_attributes');
+
 // Remove default block styles on the source-mirror templates so they cannot alter the supplied design.
 add_action('wp_enqueue_scripts', function(){
     wp_dequeue_style('wp-block-library');
