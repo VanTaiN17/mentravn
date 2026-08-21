@@ -267,10 +267,19 @@ body.mentra-menu-open{overflow:hidden}
 /* We remove Hydrogen's fixed loading screen; WordPress delivers server rendered HTML. */
 .route-loading-indicator{display:none!important}
 
-/* Motion hooks re-created locally */
-[data-mentra-reveal]{opacity:0;transform:translateY(18px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
-[data-mentra-reveal].is-visible{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.home-backed-marquee-track{animation:none}[data-mentra-reveal]{opacity:1;transform:none;transition:none}}
+/* Motion hooks re-created locally.
+   !important is required here: every data-mentra-reveal element's static
+   source HTML (across the whole site, not just this page) carries a baked-in
+   inline style="opacity:1;transform:none;transition:none" left over from the
+   original Hydrogen/Framer Motion capture (the wget snapshot caught the DOM
+   post-animation). An inline style always beats an external stylesheet rule
+   of equal/lower specificity, so without !important this rule can never
+   actually hide the element pre-scroll - the reveal silently never fires
+   anywhere on the site. Found during the Phase 4.5 Socials audit; fixed
+   globally since the bug and the fix both apply to every page, not just one. */
+[data-mentra-reveal]{opacity:0!important;transform:translateY(18px)!important;transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
+[data-mentra-reveal].is-visible{opacity:1!important;transform:none!important}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.home-backed-marquee-track{animation:none}[data-mentra-reveal]{opacity:1!important;transform:none!important;transition:none}}
 
 /* === 3.2 visual parity pass: compact source-style desktop flyout + homepage/mobile === */
 /* The supplied Mentra hero product image has transparency. `screen` made the dark frame
