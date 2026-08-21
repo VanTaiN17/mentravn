@@ -287,10 +287,12 @@ add_filter('woocommerce_variation_is_purchasable', '__return_false');
 // from get_price_html()).
 add_filter('woocommerce_get_price_html', '__return_empty_string');
 
-// Cart fragments (the AJAX mini-cart refresh script) serve no purpose with
-// no cart flow — drop the extra request/JS.
+// Cart fragments (the AJAX mini-cart refresh script) and the add-to-cart
+// handler serve no purpose with woocommerce_is_purchasable filtered to
+// false everywhere — drop the extra requests/JS.
 add_action('wp_enqueue_scripts', function () {
     wp_dequeue_script('wc-cart-fragments');
+    wp_dequeue_script('wc-add-to-cart');
 }, 100);
 
 // Remove default block styles on the source-mirror templates so they cannot alter the supplied design.
