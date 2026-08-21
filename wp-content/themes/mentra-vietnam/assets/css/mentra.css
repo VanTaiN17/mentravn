@@ -1590,4 +1590,29 @@ body{font-optical-sizing:auto}
   border-color: transparent !important;
 }
 
+/* --- green-grid-promo styling --- */
+.green-grid-promo__content{position:relative;z-index:2;max-width:620px;padding:max(32px,min(5.5vw,72px));color:#f8fff9}
+.green-grid-promo__icon{display:block;width:max(44px,min(5vw,64px));height:max(44px,min(5vw,64px));margin-bottom:max(20px,min(3vw,32px));border-radius:16px;-o-object-fit:contain;object-fit:contain;box-shadow:0 14px 32px #00000029}
+.green-grid-promo__eyebrow{margin-bottom:16px;color:#ffffffb8;font-size:var(--text-label);font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.green-grid-promo__title{max-width:560px;color:#f8fff9;font-size:max(34px,min(4.7vw,58px));font-weight:600;line-height:1.04;letter-spacing:0}
+.green-grid-promo__body{max-width:620px;margin-top:max(18px,min(2.4vw,28px));color:#ffffffd6;font-size:max(18px,min(2vw,28px));font-weight:400;line-height:1.42}
+.green-grid-promo__actions{margin-top:max(26px,min(3.2vw,40px))}
+.green-grid-promo__cta{display:inline-flex;min-height:52px;align-items:center;justify-content:center;border:0;border-radius:999px;background:#f8fff9;color:#006d3e;color:var(--brand-text);padding:0 28px;font-family:inherit;font-size:16px;font-weight:600;line-height:1;-webkit-text-decoration:none;text-decoration:none;cursor:pointer;transition:background-color .16s ease,color .16s ease,transform .16s ease}
+.green-grid-promo__cta:hover{color:#006d3e;color:var(--brand-text);background:#ffffffeb}
+.green-grid-promo__cta:active{transform:translateY(1px)}
+.green-grid-promo__media{position:absolute;right:max(20px,min(5vw,96px));bottom:0;z-index:1;display:flex;width:min(43%,580px);height:92%;align-items:flex-end;justify-content:flex-end;pointer-events:none}
+.green-grid-promo__media img{display:block;max-width:100%;max-height:100%;-o-object-fit:contain;object-fit:contain;-o-object-position:bottom right;object-position:bottom right;filter:drop-shadow(18px 18px 28px rgba(0,0,0,.18))}
+.apps-phone-promo .green-grid-promo__media{bottom:max(28px,min(3.4vw,48px));height:calc(92% - max(28px,min(3.4vw,48px)))}
+
+@media (max-width: 767px){
+  .green-grid-promo__content{max-width:none;padding:32px 28px 0}
+  .green-grid-promo__title{font-size:max(32px,min(10vw,46px))}
+  .green-grid-promo__body{font-size:18px}
+  .green-grid-promo__media{position:relative;right:auto;bottom:auto;width:100%;height:280px;padding-left:24px;padding-right:24px;justify-content:center}
+  .green-grid-promo__media img{max-height:100%;-o-object-position:bottom center;object-position:bottom center}
+  .apps-phone-promo .green-grid-promo__media{height:320px;margin-top:28px;padding-bottom:28px}
+  .apps-phone-promo .green-grid-promo__media img{max-height:calc(100% - 28px)}
+}
+
+
 
