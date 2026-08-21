@@ -14,6 +14,7 @@ final class Mentra_Vietnam_Core_99 {
     public static function init() {
         add_action('init', [__CLASS__, 'register_subscriber_cpt']);
         add_action('init', [__CLASS__, 'maybe_create_pages'], 20);
+        add_action('init', [__CLASS__, 'maybe_create_mentra_live_product'], 25);
         add_action('admin_menu', [__CLASS__, 'admin_menu']);
         add_action('admin_init', [__CLASS__, 'register_settings']);
         add_action('wp_ajax_mentra_vn_newsletter', [__CLASS__, 'newsletter']);
@@ -101,6 +102,165 @@ final class Mentra_Vietnam_Core_99 {
         if (get_option('mentra_vn_pages_synced_v2')) { return; }
         self::create_pages();
         update_option('mentra_vn_pages_synced_v2', 1);
+    }
+
+    /**
+     * Catalog-only product seed for Mentra Live, Phase 3. Self-healing and
+     * idempotent like maybe_create_pages(): gated by an option flag so it
+     * only does work once, but also re-checks by SKU before creating
+     * anything, so it is always safe to run again (e.g. after the option
+     * is cleared, or on a fresh staging copy of the DB) without ever
+     * producing a duplicate product. Never overwrites an existing product
+     * - if one is already found by SKU, this is a no-op.
+     */
+    public static function maybe_create_mentra_live_product() {
+        if (get_option('mentra_vn_product_mentra_live_v1')) { return; }
+        if (!class_exists('WC_Product_Variable')) { return; }
+        // add_option() fails (returns false) if the option row already
+        // exists - this is an atomic "insert if not exists" at the DB
+        // level, used as a lock so two near-simultaneous requests can't
+        // both pass the get_option() check above and both create a
+        // product before either finishes. Needed because
+        // wc_get_product_id_by_sku() reads a lookup table that can lag
+        // behind a same-request insert, so the SKU check inside
+        // create_mentra_live_product() alone is not always fast enough.
+        if (!add_option('mentra_vn_product_mentra_live_lock', 1, '', 'no')) { return; }
+        self::create_mentra_live_product();
+        update_option('mentra_vn_product_mentra_live_v1', 1);
+    }
+
+    /**
+     * Idempotent by SKU 'MENTRA-LIVE': if a product with that SKU already
+     * exists (created by a prior run, or manually in wp-admin), this does
+     * nothing and returns its ID. No price is ever set - this catalog is
+     * explicitly non-transactional (see functions.php catalog-only
+     * hardening). Source data (name, images, color/stock variants) is
+     * taken from the Shopify product object captured in WGET_REFERENCE
+     * live.html (gid://shopify/Product/8963292102908), NOT the price.
+     */
+    public static function create_mentra_live_product($force = false) {
+        if (!class_exists('WC_Product_Variable')) { return 0; }
+        // Query postmeta directly rather than wc_get_product_id_by_sku(),
+        // which reads a lookup table that can lag behind a same-request
+        // insert (see maybe_create_mentra_live_product()).
+        $existing = get_posts([
+            'post_type' => 'product',
+            'post_status' => 'any',
+            'meta_key' => '_sku',
+            'meta_value' => 'MENTRA-LIVE',
+            'numberposts' => 1,
+            'fields' => 'ids',
+            'orderby' => 'ID',
+            'order' => 'ASC',
+        ]);
+        $existing_id = $existing ? (int) $existing[0] : 0;
+        if ($existing_id && !$force) { return $existing_id; }
+
+        $product = new WC_Product_Variable();
+        $product->set_name('Mentra Live Camera Glasses');
+        $product->set_slug('mentra-live-camera-glasses');
+        $product->set_sku('MENTRA-LIVE');
+        $product->set_status('publish');
+        $product->set_catalog_visibility('visible');
+        $product->set_description(
+            "Kính thông minh mở cho AI và công việc thực tế.\n\n" .
+            "Camera HD, loa stereo, ba microphone và SDK mở để xây dựng quy trình AI tùy chỉnh cho nhà phát triển và doanh nghiệp.\n\n" .
+            "Khối lượng 43g, camera 1080p (FOV 119°), 3 microphone, loa stereo, pin kính 260 mAh, hộp sạc 2.200 mAh, thời lượng hỗn hợp 12+ giờ theo công bố. Nền tảng: MentraOS."
+        );
+        $product->set_short_description('Kính thông minh mở cho AI và công việc thực tế, xây dựng trên nền tảng MentraOS.');
+
+        $attribute = new WC_Product_Attribute();
+        $attribute->set_id(0);
+        $attribute->set_name('Màu sắc');
+        $attribute->set_options(['Đen', 'Trong suốt']);
+        $attribute->set_position(0);
+        $attribute->set_visible(true);
+        $attribute->set_variation(true);
+        $product->set_attributes([$attribute]);
+
+        $featured_id = self::sideload_theme_asset('closed_mentra_live.webp', 'Mentra Live');
+        if ($featured_id) { $product->set_image_id($featured_id); }
+        $gallery_ids = array_filter([
+            self::sideload_theme_asset('product_photos/frame.png', 'Mentra Live - khung kính'),
+            self::sideload_theme_asset('product_photos/frame2.png', 'Mentra Live - khung kính (2)'),
+            self::sideload_theme_asset('micro_charge_cable_mentra_live.png', 'Mentra Live - cáp sạc'),
+            self::sideload_theme_asset('product_photos/chargingcase.webp', 'Mentra Live - hộp sạc'),
+        ]);
+        if ($gallery_ids) { $product->set_gallery_image_ids(array_values($gallery_ids)); }
+
+        // Canonical frontend URL for redirecting this product's own
+        // /product/mentra-live-camera-glasses/ page away from itself -
+        // see mentra_vn_product_canonical_redirect() in functions.php.
+        $product->update_meta_data('_mentra_vn_canonical_url', '/mentra-live/');
+        $product_id = $product->save();
+        if (!$product_id) { return 0; }
+
+        update_post_meta($product_id, '_yoast_wpseo_meta-robots-noindex', '1');
+
+        $variations = [
+            ['color' => 'Đen', 'sku' => 'MENTRA-LIVE-DEN', 'stock' => 'instock'],
+            ['color' => 'Trong suốt', 'sku' => 'MENTRA-LIVE-TRONG-SUOT', 'stock' => 'outofstock'],
+        ];
+        foreach ($variations as $v) {
+            $variation = new WC_Product_Variation();
+            $variation->set_parent_id($product_id);
+            $variation->set_attributes(['mau-sac' => $v['color']]);
+            $variation->set_sku($v['sku']);
+            $variation->set_manage_stock(false);
+            $variation->set_stock_status($v['stock']);
+            $variation->set_status('publish');
+            $variation->save();
+        }
+
+        if (class_exists('WC_Product_Variable')) {
+            WC_Product_Variable::sync($product_id);
+        }
+        wc_delete_product_transients($product_id);
+
+        return $product_id;
+    }
+
+    /**
+     * Copies a theme asset into the Media Library, idempotently (tracked
+     * by the '_mentra_vn_source_asset' meta key so re-running never
+     * creates duplicate attachments for the same source file).
+     */
+    private static function sideload_theme_asset($relative_path, $title) {
+        $existing = get_posts([
+            'post_type' => 'attachment',
+            'meta_key' => '_mentra_vn_source_asset',
+            'meta_value' => $relative_path,
+            'numberposts' => 1,
+            'fields' => 'ids',
+        ]);
+        if ($existing) { return (int) $existing[0]; }
+
+        $file_path = get_template_directory() . '/assets/' . $relative_path;
+        if (!is_file($file_path)) { return 0; }
+
+        $filetype = wp_check_filetype(basename($file_path));
+        if (empty($filetype['type'])) { return 0; }
+
+        $contents = file_get_contents($file_path);
+        if ($contents === false) { return 0; }
+
+        $upload = wp_upload_bits(basename($file_path), null, $contents);
+        if (!empty($upload['error'])) { return 0; }
+
+        $attachment_id = wp_insert_attachment([
+            'post_mime_type' => $filetype['type'],
+            'post_title' => $title,
+            'post_content' => '',
+            'post_status' => 'inherit',
+        ], $upload['file']);
+        if (!$attachment_id) { return 0; }
+
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        $attach_data = wp_generate_attachment_metadata($attachment_id, $upload['file']);
+        wp_update_attachment_metadata($attachment_id, $attach_data);
+        update_post_meta($attachment_id, '_mentra_vn_source_asset', $relative_path);
+
+        return $attachment_id;
     }
 
     public static function admin_menu() {
