@@ -181,6 +181,19 @@ function mentra_vn_legal_slug_redirects() {
 }
 add_action('template_redirect', 'mentra_vn_legal_slug_redirects');
 
+// /get-mentra was the old Shopify-era purchase/download CTA target and has
+// no WordPress route (true 404). All on-page CTAs were updated to link
+// directly to /lien-he/?topic=sales (there is no ecommerce checkout), but
+// redirect the bare path too in case of stray inbound links/bookmarks.
+function mentra_vn_get_mentra_redirect() {
+    $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+    if ($path === 'get-mentra') {
+        wp_safe_redirect(home_url('/lien-he/?topic=sales'), 301);
+        exit;
+    }
+}
+add_action('template_redirect', 'mentra_vn_get_mentra_redirect');
+
 // Remove default block styles on the source-mirror templates so they cannot alter the supplied design.
 add_action('wp_enqueue_scripts', function(){
     wp_dequeue_style('wp-block-library');
