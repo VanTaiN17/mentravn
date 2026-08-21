@@ -1,7 +1,11 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
-define('MENTRA_VN_THEME_VERSION', '3.9.0');
+// Bumped from 3.9.0 (Phase 2) - Phases 3/4/4.5/4.6 all modified mentra.css/
+// mentra.js since then without ever bumping this cache-busting version
+// string, so any browser that cached the old CSS/JS before those changes
+// would keep serving it indefinitely (the query string never changed).
+define('MENTRA_VN_THEME_VERSION', '3.10.0');
 define('MENTRA_VN_THEME_DIR', get_template_directory());
 define('MENTRA_VN_THEME_URI', get_template_directory_uri());
 
