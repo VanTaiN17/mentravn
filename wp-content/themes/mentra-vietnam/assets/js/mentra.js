@@ -467,7 +467,7 @@
       const iconBaseBg=iconBox?iconBox.style.backgroundColor:'';
       const iconHoverBg=/^#([0-9a-fA-F]{6})[0-9a-fA-F]{2}$/.test(iconBaseBg)?iconBaseBg.slice(0,7)+'26':iconBaseBg;
       const title=card.querySelector('h3');
-      const arrow=card.querySelector('svg:last-of-type');
+      const arrow=card.querySelector('.flex.items-center.gap-4 > svg');
       const set=(on)=>{
         card.style.transform=on?'translateY(-3px)':'translateY(0)';
         card.style.boxShadow=on?'0 14px 34px rgba(15,23,42,.10)':'0 1px 3px rgba(0,0,0,.04)';
