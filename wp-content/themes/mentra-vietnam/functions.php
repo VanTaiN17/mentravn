@@ -303,6 +303,36 @@ add_action('wp_enqueue_scripts', function(){
     wp_dequeue_style('classic-theme-styles');
 }, 100);
 
+// Phase 4.5: WooCommerce's own frontend CSS/JS was loading on every public
+// route (verified: homepage, /tin-tuc/, /mentra-live/ all requested
+// woocommerce-general/layout/smallscreen + wc-blocks-style, plus the
+// sourcebuster/order-attribution marketing-tracking scripts) even though
+// this site never renders a WooCommerce shop/cart/checkout template - it's
+// pure dead weight and a source of unintended style interference on the
+// theme's own custom pages. Scoped to !is_admin() only, so wp-admin's
+// Products screens (and any WC data/API calls, which don't enqueue
+// frontend assets in the first place) are unaffected.
+add_action('wp_enqueue_scripts', function () {
+    if (is_admin()) { return; }
+    foreach (['woocommerce-general', 'woocommerce-layout', 'woocommerce-smallscreen', 'wc-blocks-style', 'coming-soon'] as $handle) {
+        wp_dequeue_style($handle);
+    }
+    foreach (['sourcebuster-js', 'wc-order-attribution'] as $handle) {
+        wp_dequeue_script($handle);
+    }
+}, 100);
+
+// wc-blocks-style specifically is re-enqueued unconditionally by
+// Automattic\WooCommerce\Blocks\Domain\Services\Notices::enqueue_notice_styles()
+// on wp_head (every request, block theme or not - it's how WC preps its
+// notice banner styling even though this site uses classic notice
+// templates), which runs after wp_enqueue_scripts, so the dequeue above
+// alone doesn't catch it. Remove it again right before styles print.
+add_action('wp_head', function () {
+    if (is_admin()) { return; }
+    wp_dequeue_style('wc-blocks-style');
+}, 20);
+
 // ==========================================================================
 // Phase 4: WordPress-native news article routing.
 // The 16 owned articles are real post_type=post entries (imported by the
