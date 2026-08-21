@@ -1,0 +1,54 @@
+# === WordPress core (not custom code, reinstallable) ===
+/wp-admin/
+/wp-includes/
+/index.php
+/wp-activate.php
+/wp-blog-header.php
+/wp-comments-post.php
+/wp-cron.php
+/wp-links-opml.php
+/wp-load.php
+/wp-login.php
+/wp-mail.php
+/wp-settings.php
+/wp-signup.php
+/wp-trackback.php
+/xmlrpc.php
+/license.txt
+/readme.html
+
+# === Config / secrets ===
+/wp-config.php
+/local-xdebuginfo.php
+*.log
+
+# === Uploads (generated/large, not source-controlled) ===
+/wp-content/uploads/
+
+# === Cache / upgrade / backup working dirs ===
+/wp-content/cache/
+/wp-content/upgrade/
+/wp-content/backup*/
+/wp-content/ai1wm-backups/
+
+# === Third-party plugins (managed via WP admin/composer, not custom code) ===
+/wp-content/plugins/woocommerce/
+/wp-content/plugins/wordpress-seo/
+/wp-content/plugins/wp-mail-smtp/
+/wp-content/plugins/prime-mover/
+/wp-content/plugins/index.php
+
+# === Default WordPress themes (unused, not custom) ===
+/wp-content/themes/twentytwentyfive/
+/wp-content/themes/twentytwentyfour/
+/wp-content/themes/twentytwentythree/
+/wp-content/themes/index.php
+
+# === Raw/intermediate audit data (superseded by docs/site-audit.md etc.) ===
+docs/_raw/
+
+# === OS / editor cruft ===
+.DS_Store
+Thumbs.db
+*.tmp
+*.tmp.html
