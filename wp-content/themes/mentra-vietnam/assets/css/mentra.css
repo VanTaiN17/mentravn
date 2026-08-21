@@ -74,7 +74,10 @@ img,svg,video{max-width:100%}
 .type-body{font-size:16px;line-height:1.65}
 .type-card-title{font-family:var(--font-display);font-size:22px;font-weight:600;line-height:1.15}
 .type-section-title{font-family:var(--font-display);font-size:clamp(30px,3.2vw,48px);font-weight:600;line-height:1.05;letter-spacing:-.025em}
-.type-page-title,.type-hero{font-family:var(--font-display);font-weight:600;line-height:.98;letter-spacing:-.035em}
+.type-page-title,.type-hero{font-family:var(--font-display);font-weight:600;letter-spacing:-.035em}
+.type-hero{font-size:max(2.5rem,min(6vw,5rem));line-height:1.04}
+.type-page-title{font-size:max(2rem,min(4vw,3rem));line-height:.98}
+.type-lead{font-size:max(1rem,min(1.4vw,1.25rem));line-height:1.55}
 .text-gradient-brand{background:linear-gradient(90deg,#007a43,#00b869);-webkit-background-clip:text;background-clip:text;color:transparent}
 .dark-invert{filter:brightness(0) invert(1)}
 .dark-invert-hue{filter:brightness(0) invert(1) hue-rotate(180deg)}
