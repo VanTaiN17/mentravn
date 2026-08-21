@@ -302,3 +302,65 @@ add_action('wp_enqueue_scripts', function(){
     wp_dequeue_style('global-styles');
     wp_dequeue_style('classic-theme-styles');
 }, 100);
+
+// ==========================================================================
+// Phase 4: WordPress-native news article routing.
+// The 16 owned articles are real post_type=post entries (imported by the
+// plugin - see Mentra_Vietnam_Core_99::maybe_import_mentra_articles()) with
+// _mentra_vn_article=1 postmeta. Canonical URL is /tin-tuc/{slug}/, scoped
+// only to those posts via a dedicated rewrite rule + post_type_link filter
+// so this never affects any other/future WordPress Post's permalink.
+// ==========================================================================
+
+// Rewrite rule registered on every 'init' (cheap, required so WP recognizes
+// the route); the flush itself only runs once, gated the same way
+// maybe_create_pages()/maybe_import_mentra_articles() gate their one-time
+// work, since flush_rewrite_rules() is expensive and must not run every request.
+function mentra_vn_register_news_rewrite() {
+    add_rewrite_rule('^tin-tuc/([^/]+)/?$', 'index.php?post_type=post&name=$matches[1]', 'top');
+}
+add_action('init', 'mentra_vn_register_news_rewrite', 10);
+
+function mentra_vn_maybe_flush_news_rewrite() {
+    if (get_option('mentra_vn_news_rewrite_v1')) { return; }
+    flush_rewrite_rules();
+    update_option('mentra_vn_news_rewrite_v1', 1);
+}
+add_action('init', 'mentra_vn_maybe_flush_news_rewrite', 11);
+
+// Only posts carrying _mentra_vn_article=1 get the /tin-tuc/{slug}/
+// permalink; every other post type/post keeps WordPress's own default
+// permalink structure untouched.
+function mentra_vn_article_permalink($post_link, $post) {
+    if (!$post || $post->post_type !== 'post') { return $post_link; }
+    if (!get_post_meta($post->ID, '_mentra_vn_article', true)) { return $post_link; }
+    return home_url('/tin-tuc/' . $post->post_name . '/');
+}
+add_filter('post_type_link', 'mentra_vn_article_permalink', 10, 2);
+add_filter('post_link', 'mentra_vn_article_permalink', 10, 2);
+
+// Legacy /blogs/blog/{slug}/ URLs (the old Shopify-era article paths, and
+// the same paths the static-source mirror used to soft-404 on before
+// Phase 4) permanently redirect to the new canonical /tin-tuc/{slug}/
+// route. Runs on template_redirect - same hook/priority pattern as the
+// other redirects in this file - so it takes effect before page.php/404.php
+// would otherwise try to render templates/source/blogs/blog/*.html, which
+// after this phase is reference/dormant content only (see Phase 4 report).
+function mentra_vn_legacy_article_redirect() {
+    $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+    if (strpos($path, 'blogs/blog/') !== 0) { return; }
+    $slug = trim(substr($path, strlen('blogs/blog/')), '/');
+    if (!$slug || strpos($slug, '/') !== false) { return; }
+    $existing = get_posts([
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'meta_key' => '_mentra_vn_legacy_slug',
+        'meta_value' => $slug,
+        'numberposts' => 1,
+        'fields' => 'ids',
+    ]);
+    if (!$existing) { return; }
+    wp_safe_redirect(home_url('/tin-tuc/' . $slug . '/'), 301);
+    exit;
+}
+add_action('template_redirect', 'mentra_vn_legacy_article_redirect', 4);
