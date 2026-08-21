@@ -277,6 +277,45 @@ body.mentra-menu-open{overflow:hidden}
    disappear against the light section; the live storefront renders it as a normal image. */
 .dark-blend-video{mix-blend-mode:normal!important}
 
+/* ==========================================================================
+   Phase 4.5: visual fidelity repair.
+   page-mentra-live.php / page-mentra-os.php previously used an invented
+   classname vocabulary (product-page-hero, cards-3, feature-card, spec-grid,
+   section-black/green/soft) that only ever existed in an orphaned, never-
+   enqueued assets/css/main.css - so both pages rendered essentially unstyled.
+   The rebuild reuses the real WGET source markup, which is almost entirely
+   covered already by utilities.css's compiled Tailwind utility classes (that
+   file was built by scanning the same source HTML). What's added below is
+   only the handful of BEM component classes that never had any rule at all
+   anywhere in the theme. Scoped to each page's own body class (set by
+   mentra_vn_document_open()) so nothing here can affect any other route.
+   ========================================================================== */
+
+/* --- Mentra Live product detail page --- */
+.mentra-vn-mentra-live .product-detail-section{padding-top:calc(var(--height-nav) + 40px)}
+.mentra-vn-mentra-live .product-detail-grid{display:grid;gap:40px}
+@media(min-width:1024px){.mentra-vn-mentra-live .product-detail-grid{grid-template-columns:1.05fr .95fr;gap:64px;align-items:start}}
+.mentra-vn-mentra-live .product-detail-media-card{border-radius:24px;overflow:hidden;aspect-ratio:1/1}
+.mentra-vn-mentra-live .product-detail-media-image{width:100%;height:100%;object-fit:contain}
+.mentra-vn-mentra-live .product-detail-thumbnails{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.mentra-vn-mentra-live .product-detail-thumb{border-radius:12px;overflow:hidden;aspect-ratio:1/1}
+.mentra-vn-mentra-live .product-detail-title{font-family:var(--font-display);font-size:clamp(28px,4vw,38px);font-weight:600;letter-spacing:-.02em}
+.mentra-vn-mentra-live .product-detail-price{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--brand-text)}
+.mentra-vn-mentra-live .product-detail-description{font-size:16px;line-height:1.6}
+.mentra-vn-mentra-live .product-detail-spec-row{padding:13px 0}
+.mentra-vn-mentra-live .product-detail-summary{position:sticky;top:calc(var(--height-nav) + 32px)}
+.mentra-vn-mentra-live #charging{scroll-margin-top:calc(var(--height-nav) + 24px)}
+
+/* Product-detail accordion (Features / Specifications / FAQ) - same
+   grid-template-rows collapse technique already proven by .home-faq-answer. */
+.pdp-accordion-item{border-bottom:1px solid var(--border-subtle)}
+.pdp-accordion-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 0;border:0;background:none;text-align:left;cursor:pointer;font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--ink-primary)}
+.pdp-accordion-icon{flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;transition:transform .3s ease}
+.pdp-accordion-item.is-open .pdp-accordion-icon{transform:rotate(45deg)}
+.pdp-accordion-panel{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .35s ease,opacity .25s ease}
+.pdp-accordion-panel>div{overflow:hidden}
+.pdp-accordion-item.is-open .pdp-accordion-panel{grid-template-rows:1fr;opacity:1}
+
 /* Desktop nav flyout — matched to the compact live Mentra header. */
 @media(min-width:1024px){
   .site-header>.hidden.lg\:block>.mx-auto.grid{height:60px!important}

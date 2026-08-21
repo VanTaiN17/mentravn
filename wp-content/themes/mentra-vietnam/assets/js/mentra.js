@@ -444,6 +444,17 @@
   }
 
 
+  function initPdpAccordion(){
+    qsa('.pdp-accordion-item').forEach(item=>{
+      const trigger=qs('.pdp-accordion-trigger',item);
+      if(!trigger) return;
+      trigger.addEventListener('click',()=>{
+        const open=item.classList.toggle('is-open');
+        trigger.setAttribute('aria-expanded',String(open));
+      });
+    });
+  }
+
   function initNewsroomFilters(){
     const root=qs('[data-newsroom-grid="1"]');
     if(!root) return;
@@ -513,5 +524,5 @@
     apply();
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();});
+  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();});
 })();
