@@ -15,6 +15,8 @@ final class Mentra_Vietnam_Core_99 {
         add_action('init', [__CLASS__, 'register_subscriber_cpt']);
         add_action('init', [__CLASS__, 'maybe_create_pages'], 20);
         add_action('init', [__CLASS__, 'maybe_create_mentra_live_product'], 25);
+        add_action('init', [__CLASS__, 'maybe_create_news_category'], 26);
+        add_action('init', [__CLASS__, 'maybe_import_mentra_articles'], 30);
         add_action('admin_menu', [__CLASS__, 'admin_menu']);
         add_action('admin_init', [__CLASS__, 'register_settings']);
         add_action('wp_ajax_mentra_vn_newsletter', [__CLASS__, 'newsletter']);
@@ -218,6 +220,110 @@ final class Mentra_Vietnam_Core_99 {
         wc_delete_product_transients($product_id);
 
         return $product_id;
+    }
+
+    /**
+     * Phase 4 news category for the 16 owned articles. Idempotent: checks
+     * for the term by slug before creating, and is gated by an option flag
+     * so normal operation only ever attempts creation once. Press items are
+     * explicitly NOT a WordPress taxonomy - they are static data (see
+     * wp-content/themes/mentra-vietnam/data/press.php) and never get a
+     * category or any other taxonomy term.
+     */
+    public static function maybe_create_news_category() {
+        if (get_option('mentra_vn_news_category_v1')) { return; }
+        if (!term_exists('bai-viet', 'category')) {
+            wp_insert_term('Bài viết', 'category', ['slug' => 'bai-viet']);
+        }
+        update_option('mentra_vn_news_category_v1', 1);
+    }
+
+    /**
+     * Idempotent, self-healing, resumable import of the 16 owned Mentra
+     * articles as real post_type=post entries. Deliberately follows the
+     * same no-lock pattern as maybe_create_pages() rather than the
+     * single-item add_option() lock used by
+     * maybe_create_mentra_live_product(): this imports a *list* of items,
+     * and create_mentra_article() itself is idempotent per-item (checks by
+     * the '_mentra_vn_legacy_slug' postmeta before ever inserting), so a
+     * request-level lock isn't needed for correctness here and would
+     * actively hurt self-healing - if a batch run partially completes
+     * (e.g. a transient failure importing one article), a lock would
+     * permanently freeze the migration at "partially done" since the flag
+     * never gets set but the lock blocks every retry. Without a lock, the
+     * next request that fires 'init' just re-checks the (cheap) 16
+     * existence queries and imports whatever is still missing, and only
+     * sets the "done" option once all 16 are confirmed present - after
+     * that, every request is a single get_option() no-op. Never deletes or
+     * overwrites an existing post - if an admin has since edited an
+     * imported article's title/body/excerpt/thumbnail/category, this
+     * routine will never touch it again once that post exists.
+     */
+    public static function maybe_import_mentra_articles() {
+        if (get_option('mentra_vn_news_migration_v1')) { return; }
+        self::maybe_create_news_category();
+        require_once __DIR__ . '/data/mentra-articles.php';
+        $all_present = true;
+        foreach (mentra_vn_articles() as $article) {
+            if (!self::create_mentra_article($article)) { $all_present = false; }
+        }
+        if ($all_present) {
+            update_option('mentra_vn_news_migration_v1', 1);
+        }
+    }
+
+    /**
+     * Idempotent by '_mentra_vn_legacy_slug' postmeta: if an article with
+     * that source slug already exists, this is a no-op and returns its ID.
+     * $data comes from mentra_vn_articles() in data/mentra-articles.php -
+     * see docs/news-migration-manifest.md for the full source/verification
+     * table. {{THEME_URI}}/{{HOME_URL}} placeholders in the body match the
+     * same convention mentra_vn_render_source() uses for static pages.
+     */
+    public static function create_mentra_article($data, $force = false) {
+        $existing = get_posts([
+            'post_type' => 'post',
+            'post_status' => 'any',
+            'meta_key' => '_mentra_vn_legacy_slug',
+            'meta_value' => $data['slug'],
+            'numberposts' => 1,
+            'fields' => 'ids',
+            'orderby' => 'ID',
+            'order' => 'ASC',
+        ]);
+        $existing_id = $existing ? (int) $existing[0] : 0;
+        if ($existing_id && !$force) { return $existing_id; }
+
+        $category = get_term_by('slug', 'bai-viet', 'category');
+        $body = str_replace(
+            ['{{THEME_URI}}', '{{HOME_URL}}'],
+            [MENTRA_VN_THEME_URI, untrailingslashit(home_url('/'))],
+            $data['body']
+        );
+
+        $post_id = wp_insert_post([
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'post_title' => $data['title'],
+            'post_name' => $data['slug'],
+            'post_content' => $body,
+            'post_excerpt' => $data['excerpt'],
+            'post_date' => $data['date'],
+            'post_date_gmt' => $data['date'],
+            'post_category' => $category ? [$category->term_id] : [],
+        ]);
+        if (!$post_id || is_wp_error($post_id)) { return 0; }
+
+        update_post_meta($post_id, '_mentra_vn_article', 1);
+        update_post_meta($post_id, '_mentra_vn_legacy_slug', $data['slug']);
+        update_post_meta($post_id, '_mentra_vn_article_authors', $data['authors']);
+
+        if (!empty($data['image'])) {
+            $featured_id = self::sideload_theme_asset($data['image'], $data['title']);
+            if ($featured_id) { set_post_thumbnail($post_id, $featured_id); }
+        }
+
+        return $post_id;
     }
 
     /**
