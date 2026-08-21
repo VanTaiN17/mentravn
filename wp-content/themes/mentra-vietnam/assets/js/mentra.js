@@ -254,7 +254,7 @@
   }
 
   function initFAQ(){
-    const faqRoot=qs('.home-faq-section');
+    const faqRoot=qs('.home-faq-section:not(.captions-home-faq)');
     if(!faqRoot) return;
 
     const data={
@@ -362,6 +362,36 @@
     render(selected);
   }
 
+  function initCaptionsFAQ(){
+    const root = qs('.captions-home-faq');
+    if (!root) return;
+    const items = qsa('.home-faq-item', root);
+    items.forEach(item => {
+      const btn = qs('.home-faq-question', item);
+      const toggle = qs('.home-faq-toggle', item);
+      if (!btn) return;
+      
+      btn.addEventListener('click', () => {
+        const isOpen = item.classList.contains('is-open');
+        
+        // Close all items
+        items.forEach(other => {
+          other.classList.remove('is-open');
+          const otherBtn = qs('.home-faq-question', other);
+          const otherToggle = qs('.home-faq-toggle', other);
+          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+          if (otherToggle) otherToggle.textContent = '+';
+        });
+        
+        // If it was not open, open it
+        if (!isOpen) {
+          item.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+          if (toggle) toggle.textContent = '−';
+        }
+      });
+    });
+  }
 
   function initRxFAQ(){
     qsa('.rx-faq').forEach(root=>{
@@ -623,5 +653,5 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
+  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initCaptionsFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
 })();
