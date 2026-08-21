@@ -370,6 +370,49 @@ body.mentra-menu-open{overflow:hidden}
 .pdp-accordion-panel>div{overflow:hidden}
 .pdp-accordion-item.is-open .pdp-accordion-panel{grid-template-rows:1fr;opacity:1}
 
+/* --- MentraOS page ---
+   Phase 4.6: .green-grid-promo/.os-download-promo* were a guessed dark
+   near-black gradient in Phase 4.5 (confirmed no rule existed anywhere for
+   these classnames at the time). The real component (shared across
+   index.html/apps.html/captions.html/notes.html/OS.html, extracted from the
+   live compiled stylesheet) uses a green radial+linear gradient, not
+   near-black, plus a real dot-grid overlay and a two-column grid layout
+   with the actions column right-aligned - not the guessed centered/stacked
+   version. os-badge-grid and the mobile-breakpoint block below are also
+   the real extracted rules, not approximations. */
+.green-grid-promo-section{padding:0 var(--container-px)}
+.green-grid-promo{position:relative;isolation:isolate;overflow:hidden;min-height:max(360px,min(42vw,560px));border-radius:24px;background:radial-gradient(circle at 16% 12%,rgba(255,255,255,.18),transparent 28%),linear-gradient(115deg,#55b974,#25825f 42%,#0d4d43);box-shadow:0 22px 56px rgba(15,55,45,.14)}
+.green-grid-promo__grid{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:64px 64px;opacity:.72}
+.green-grid-promo>div:not(.green-grid-promo__grid){position:relative;z-index:1}
+.os-download-promo{display:grid;min-height:0;grid-template-columns:minmax(0,.9fr) minmax(320px,1fr);gap:max(24px,min(4vw,56px));align-items:center;padding:max(32px,min(4.5vw,64px))}
+.os-download-promo__title{line-height:1.08}
+.os-download-promo__body{max-width:520px}
+.os-download-promo__actions{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.os-badge-grid{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+.os-badge-grid a{min-height:44px}
+@media(max-width:767px){
+  .green-grid-promo-section{padding-top:48px;padding-bottom:48px}
+  .green-grid-promo{min-height:0;border-radius:18px}
+  .os-download-promo{grid-template-columns:1fr;gap:1.35rem;padding:1.6rem}
+  .os-download-promo__actions{justify-self:stretch;align-items:center}
+  .os-download-promo__actions .os-badge-grid{margin-left:auto;margin-right:auto}
+  .os-badge-grid{display:grid;width:min(100%,20rem);max-width:20rem;margin-left:auto;margin-right:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}
+  .os-badge-grid a{display:inline-flex;min-width:0;justify-content:center}
+  .os-badge-grid a:nth-child(3){grid-column:1 / -1;justify-self:center;width:calc(50% - .275rem)}
+  .os-badge-grid img{height:2.25rem;max-width:100%;object-fit:contain}
+  .os-hero-section{min-height:auto!important;padding-top:calc(var(--height-nav, 3rem) + 28px)!important}
+  .os-hero-section>.site-shell{min-height:auto!important}
+  .os-hero-phone-hand{margin-left:auto;margin-right:auto;transform:scale(1.16);transform-origin:top center}
+  .os-compatibility-section{padding-top:2.75rem;padding-bottom:2.75rem}
+  .os-compatible-grid{gap:.75rem}
+  .os-compatible-card{border-radius:.9rem}
+  .os-miniapp-logo-grid{max-width:100%;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}
+  .os-miniapp-logo-grid img{width:2.4rem;height:2.4rem}
+  .os-miniapp-visual{width:100%;min-height:max(300px,min(78vw,440px));justify-content:center;margin-right:0!important}
+  .os-miniapp-phone{width:min(100%,420px);max-width:100%}
+  .os-miniapp-phone img{width:100%;max-width:100%;object-position:center bottom}
+}
+
 /* Desktop nav flyout — matched to the compact live Mentra header. */
 @media(min-width:1024px){
   .site-header>.hidden.lg\:block>.mx-auto.grid{height:60px!important}
