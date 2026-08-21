@@ -194,6 +194,31 @@ function mentra_vn_get_mentra_redirect() {
 }
 add_action('template_redirect', 'mentra_vn_get_mentra_redirect');
 
+// No ecommerce checkout flow is part of this site's scope (WooCommerce is
+// installed only as a future catalog-only CMS). Keep its default public
+// shop/cart/checkout/account routes out of the public user flow. Using a
+// temporary (302) redirect rather than 301, since /shop/ in particular may
+// become a real public catalog listing route in a later product phase.
+function mentra_vn_disable_woocommerce_public_routes() {
+    if (!function_exists('is_shop')) { return; }
+    if (is_shop() || is_cart() || is_checkout() || is_account_page()) {
+        wp_safe_redirect(home_url('/'), 302);
+        exit;
+    }
+}
+add_action('template_redirect', 'mentra_vn_disable_woocommerce_public_routes');
+
+// Default WordPress archive routes with no real content for this site
+// (the demo "Uncategorized" category, and any author archive — which also
+// avoids publicly exposing usernames via /author/<username>/).
+function mentra_vn_disable_default_wp_archives() {
+    if (is_author() || is_category('uncategorized')) {
+        wp_safe_redirect(home_url('/'), 302);
+        exit;
+    }
+}
+add_action('template_redirect', 'mentra_vn_disable_default_wp_archives');
+
 // Frontend content is Vietnamese, but the site's WP locale (and thus
 // language_attributes()) is still en_US. Force the correct document
 // language on the public frontend only, without touching wp-admin.
