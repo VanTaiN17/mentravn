@@ -92,3 +92,13 @@ While DB-verifying the new Infinity Cable page via a one-off `wp-load.php` boots
 - Yoast `og:locale`/`inLanguage` still `en_US`/`en-US` (documented since Phase 4.5, out of scope again this phase per instructions).
 - No manual/automated screenshot-diffing tool introduced.
 - Gallery thumbnail `alt` text on both product pages is generic (WC gallery images don't carry distinct per-image alt text) — same known debt item as Phase 4.5.
+
+## Addendum (same day) — arbitrary-value Tailwind classes and stale cache
+
+After the commits above, the PM reported `/mentra-live/` still looked unfixed and supplied the real page's rendered outerHTML for reference. A structural diff (DOM tag+class sequence, real page vs. local) confirmed the markup and named component classes were correct, but a class-token audit found the actual remaining defect: **every bracket-notation Tailwind class used in the three hand-authored PHP templates** (`page-mentra-live.php`, `page-mentra-os.php`, `page-mentra-live-charging-cable.php`) — `text-[Npx]`, `leading-[N]`, `tracking-[Nem]`, `max-w-[Npx]`, `min-h-[Npx]`, `grid-cols-[...]`, `aspect-[N/N]`, `border-[var(...)]`, 44 unique tokens — **had zero matching CSS rule**, because `utilities.css` was only ever compiled against `templates/source/*.html` (the static-source-mirror pages), never against these separately-authored PHP files. This silently broke font sizes, line-heights, letter-spacing, the buy-box spec-table's grid columns, and several responsive breakpoints, underneath an otherwise-correct DOM.
+
+Fixed by mechanically generating real CSS for every token used (Tailwind bracket syntax converted to literal `font-size`/`line-height`/`grid-template-columns`/etc. — no values guessed, since the token itself encodes the exact value) and re-verifying against all three files afterward (0 missing, confirmed programmatically).
+
+Separately bumped `MENTRA_VN_THEME_VERSION` (`3.9.0` → `3.10.0`), unchanged since Phase 2 despite Phases 3/4/4.5/4.6 all modifying `mentra.css`/`mentra.js` — meaning the CSS/JS cache-busting `?ver=` query string never changed either, so a browser that had cached the old files before any of those phases could have kept serving them indefinitely regardless of server-side fixes.
+
+**This is likely the true root cause of "still not fixed"** rather than anything wrong with the Phase 4.6 structural work itself — the DOM/component-CSS approach was correct, but a whole category of typography/spacing/grid values was invisibly absent, and/or the browser was serving a stale cached stylesheet. Commit: `fix: compile missing arbitrary-value Tailwind classes and bump cache version`.
