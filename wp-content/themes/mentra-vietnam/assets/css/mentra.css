@@ -260,8 +260,8 @@ body.mentra-menu-open{overflow:hidden}
 .about-card-image,.os-compatible-card__media,.even-glasses-media{overflow:hidden}
 .about-card-image img,.os-compatible-card__media img,.even-glasses-media img{transition:transform .5s cubic-bezier(.22,1,.36,1)}
 .about-founder-card:hover .about-card-image img,.os-compatible-card:hover .os-compatible-card__media img,.even-glasses-card:hover .even-glasses-media img{transform:scale(1.03)}
-.product-detail-thumb{cursor:pointer;border:1px solid transparent;transition:.16s}
-.product-detail-thumb.is-active{border-color:var(--ink-primary)}
+.product-detail-thumb{cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,opacity .15s ease,background-color .15s ease;border:2px solid var(--border-default);box-shadow:none;opacity:.65;background-color:var(--surface-1)}
+.product-detail-thumb.is-active{border-color:var(--brand);box-shadow:var(--shadow-sm);opacity:1;background-color:var(--surface-0)}
 .product-detail-thumb-image{width:100%;height:100%;object-fit:cover}
 
 /* We remove Hydrogen's fixed loading screen; WordPress delivers server rendered HTML. */

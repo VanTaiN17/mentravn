@@ -111,7 +111,7 @@ mentra_vn_render_partial('site-header');
 </div>
 <div class="product-detail-thumbnails">
 <?php foreach ($thumbs as $i => $t) : ?>
-<button aria-label="<?php echo esc_attr('Xem ' . $t['alt']); ?>" aria-pressed="<?php echo $i === 0 ? 'true' : 'false'; ?>" class="product-detail-thumb<?php echo $i === 0 ? ' is-active' : ''; ?>"><img alt="<?php echo esc_attr($t['alt']); ?>" class="product-detail-thumb-image" src="<?php echo esc_url($t['url']); ?>"></button>
+<button type="button" aria-label="<?php echo esc_attr('Xem ' . $t['alt']); ?>" aria-pressed="<?php echo $i === 0 ? 'true' : 'false'; ?>" class="product-detail-thumb transition-colors duration-150 ease-out active:scale-95<?php echo $i === 0 ? ' is-active' : ''; ?>"><img alt="<?php echo esc_attr($t['alt']); ?>" class="product-detail-thumb-image transition-opacity duration-150" src="<?php echo esc_url($t['url']); ?>"></button>
 <?php endforeach; ?>
 </div>
 
@@ -210,6 +210,7 @@ mentra_vn_render_partial('site-header');
 </div>
 </div>
 
+</div>
 </div>
 
 <?php $mentra_vn_summary(false); ?>

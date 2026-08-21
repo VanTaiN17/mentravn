@@ -565,5 +565,38 @@
     apply();
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();});
+  function initProductGallery(){
+    const galleries=qsa('.product-detail-grid');
+    if(!galleries.length) return;
+    
+    galleries.forEach(gallery=>{
+      const mainImg=qs('.product-detail-media-image', gallery);
+      const thumbs=qsa('.product-detail-thumb', gallery);
+      if(!mainImg||!thumbs.length) return;
+      
+      thumbs.forEach((thumb)=>{
+        const isActive=thumb.classList.contains('is-active');
+        thumb.setAttribute('aria-pressed',isActive?'true':'false');
+        
+        thumb.addEventListener('click',()=>{
+          const thumbImg=qs('.product-detail-thumb-image', thumb);
+          if(!thumbImg) return;
+          
+          mainImg.src=thumbImg.src;
+          mainImg.removeAttribute('srcset');
+          mainImg.removeAttribute('sizes');
+          if(thumbImg.alt) mainImg.alt=thumbImg.alt;
+          
+          thumbs.forEach(t=>{
+            t.classList.remove('is-active');
+            t.setAttribute('aria-pressed','false');
+          });
+          thumb.classList.add('is-active');
+          thumb.setAttribute('aria-pressed','true');
+        });
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
 })();
