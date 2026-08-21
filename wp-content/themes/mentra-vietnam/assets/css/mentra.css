@@ -287,33 +287,78 @@ body.mentra-menu-open{overflow:hidden}
 .dark-blend-video{mix-blend-mode:normal!important}
 
 /* ==========================================================================
-   Phase 4.5: visual fidelity repair.
+   Phase 4.5/4.6: visual fidelity repair.
    page-mentra-live.php / page-mentra-os.php previously used an invented
    classname vocabulary (product-page-hero, cards-3, feature-card, spec-grid,
    section-black/green/soft) that only ever existed in an orphaned, never-
    enqueued assets/css/main.css - so both pages rendered essentially unstyled.
-   The rebuild reuses the real WGET source markup, which is almost entirely
-   covered already by utilities.css's compiled Tailwind utility classes (that
-   file was built by scanning the same source HTML). What's added below is
-   only the handful of BEM component classes that never had any rule at all
-   anywhere in the theme. Scoped to each page's own body class (set by
-   mentra_vn_document_open()) so nothing here can affect any other route.
+   Phase 4.5 rebuilt the markup but hand-approximated this CSS block from
+   guesswork; Phase 4.6 replaced it with the real ruleset extracted from the
+   live site's own compiled stylesheet after the owner confirmed the
+   approximation still looked wrong. Reusable component blocks
+   (product-detail-*, os-*) are intentionally unscoped/shared across the
+   pages that use them; one-off page compositions use a page-body-class
+   scope (set by mentra_vn_document_open()) - each block below says which.
    ========================================================================== */
 
-/* --- Mentra Live product detail page --- */
-.mentra-vn-mentra-live .product-detail-section{padding-top:calc(var(--height-nav) + 40px)}
-.mentra-vn-mentra-live .product-detail-grid{display:grid;gap:40px}
-@media(min-width:1024px){.mentra-vn-mentra-live .product-detail-grid{grid-template-columns:1.05fr .95fr;gap:64px;align-items:start}}
-.mentra-vn-mentra-live .product-detail-media-card{border-radius:24px;overflow:hidden;aspect-ratio:1/1}
-.mentra-vn-mentra-live .product-detail-media-image{width:100%;height:100%;object-fit:contain}
-.mentra-vn-mentra-live .product-detail-thumbnails{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-.mentra-vn-mentra-live .product-detail-thumb{border-radius:12px;overflow:hidden;aspect-ratio:1/1}
-.mentra-vn-mentra-live .product-detail-title{font-family:var(--font-display);font-size:clamp(28px,4vw,38px);font-weight:600;letter-spacing:-.02em}
-.mentra-vn-mentra-live .product-detail-price{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--brand-text)}
-.mentra-vn-mentra-live .product-detail-description{font-size:16px;line-height:1.6}
-.mentra-vn-mentra-live .product-detail-spec-row{padding:13px 0}
-.mentra-vn-mentra-live .product-detail-summary{position:sticky;top:calc(var(--height-nav) + 32px)}
-.mentra-vn-mentra-live #charging{scroll-margin-top:calc(var(--height-nav) + 24px)}
+/* --- Product detail page (Mentra Live + Infinity Cable) ---
+   Phase 4.6: the Phase 4.5 version of this block was a hand-approximated
+   guess (aspect-ratio media card, unbounded summary column, grid-cols-6
+   thumbnails) and did not reproduce the real proportions - the owner
+   confirmed the page still looked visually wrong (squeezed left, wrong
+   media/typography scale). This version is the real product-detail-*
+   ruleset extracted directly from the live site's own compiled stylesheet
+   (https://mentraglass.com/live's app-*.css bundle), adapted only by
+   mapping to this theme's already-matching design-token names
+   (--height-nav, --container-px, --section-sm, --surface-0/1,
+   --border-subtle, --radius-lg/md, --ink-primary) - the values themselves
+   are unchanged. Deliberately unscoped/unprefixed (not page-body-class
+   scoped): product-detail-* is the site's real shared product-page
+   template, confirmed reused verbatim on the new Infinity Cable page, and
+   a couple of its rules (.product-detail-thumb/-image) were already
+   unscoped here since Phase 3 - scoping it to one page would have
+   fragmented an intentionally shared component. */
+.product-detail-section{padding:calc(var(--height-nav, 3.5rem) + max(1.5rem,min(3vw,2.5rem))) var(--container-px) var(--section-sm);background:var(--surface-0)}
+.product-detail-grid{display:grid;grid-template-columns:1fr;gap:2rem;align-items:start}
+.product-detail-grid>*{min-width:0}
+.product-detail-media-card{position:relative;display:flex;height:max(280px,min(54vw,440px));align-items:center;justify-content:center;overflow:hidden;padding:max(1.25rem,min(3vw,2rem));border:1px solid var(--border-subtle);border-radius:var(--radius-lg,12px);background:var(--surface-1)}
+.product-detail-media-image{width:100%;max-width:38rem;max-height:100%;object-fit:contain}
+.product-detail-thumbnails{display:flex;gap:.75rem;margin:0 -.25rem 2.5rem;padding:0 .25rem .5rem;overflow-x:auto}
+.product-detail-thumb{display:flex;flex:0 0 auto;width:5.25rem;height:4.5rem;align-items:center;justify-content:center;padding:.625rem .75rem;border-radius:var(--radius-md,8px)}
+.product-detail-thumb-image{width:100%;max-width:4rem;max-height:3rem;object-fit:contain}
+.product-detail-mobile-summary{margin-bottom:2rem}
+.product-detail-summary{width:100%;max-width:32.5rem}
+.product-detail-title{max-width:36rem;font-family:var(--font-display);font-size:max(2rem,min(3.2vw,2.5rem));font-weight:600;line-height:1.08;letter-spacing:0}
+.product-detail-price{font-family:var(--font-display);font-size:1.5rem;font-weight:600;line-height:1.15;color:var(--brand-text)}
+.product-detail-description{max-width:34rem;font-size:1rem;line-height:1.65}
+.product-detail-spec-row{padding:.75rem 0;font-size:.875rem;line-height:1.45}
+@media(max-width:63.999em){
+  .product-detail-section{padding-top:calc(var(--height-nav, 3rem) + env(safe-area-inset-top,0px) + 1.5rem);padding-bottom:2.5rem}
+  .product-detail-grid{gap:0}
+  .product-detail-media-card{height:min(72vw,280px);padding:1rem;border-radius:var(--radius-md,8px)}
+  .product-detail-media-image{max-width:22rem}
+  .product-detail-thumbnails{gap:.625rem;margin-bottom:1.5rem;padding-bottom:.25rem}
+  .product-detail-thumb{width:5.125rem;height:4.25rem;padding:.5rem .625rem;border-radius:var(--radius-md,8px)}
+  .product-detail-title{font-size:2rem;line-height:1.08}
+  .product-detail-price{font-size:1.625rem}
+  .product-detail-description{margin-bottom:1.25rem;font-size:1rem;line-height:1.55}
+  .product-detail-mobile-summary{margin-bottom:2.5rem}
+  .product-detail-spec-row{grid-template-columns:minmax(6.25rem,.42fr) minmax(0,1fr);gap:1rem;padding:.875rem 0}
+}
+@media(min-width:48em) and (max-width:63.999em){
+  .product-detail-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:max(1.75rem,min(3.5vw,2.75rem));align-items:start}
+  .product-detail-media-card{height:max(300px,min(40vw,400px))}
+  .product-detail-summary{max-width:none}
+}
+@media(min-width:64em){
+  .product-detail-grid{grid-template-columns:minmax(0,1.1fr) minmax(25rem,.9fr);gap:max(3rem,min(5vw,4.5rem))}
+  .product-detail-media-card{height:max(360px,min(38vw,520px))}
+  .product-detail-summary{align-self:start;justify-self:end;position:sticky;top:calc(var(--height-nav, 3.5rem) + 1.5rem)}
+  .product-detail-description{font-size:1.0625rem}
+}
+@media(min-width:96em){
+  .product-detail-grid{grid-template-columns:minmax(0,1.05fr) minmax(27rem,.86fr)}
+}
 
 /* Product-detail accordion (Features / Specifications / FAQ) - same
    grid-template-rows collapse technique already proven by .home-faq-answer. */
@@ -324,15 +369,6 @@ body.mentra-menu-open{overflow:hidden}
 .pdp-accordion-panel{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .35s ease,opacity .25s ease}
 .pdp-accordion-panel>div{overflow:hidden}
 .pdp-accordion-item.is-open .pdp-accordion-panel{grid-template-rows:1fr;opacity:1}
-
-/* --- MentraOS page --- */
-.mentra-vn-mentra-os .os-badge-grid{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.mentra-vn-mentra-os .green-grid-promo-section{padding:0 var(--container-px)}
-.mentra-vn-mentra-os .green-grid-promo{position:relative;overflow:hidden;border-radius:28px;padding:56px 40px;background:linear-gradient(135deg,#063a24,#0b2318 65%,#081c14);text-align:center}
-.mentra-vn-mentra-os .green-grid-promo__grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:36px 36px;-webkit-mask-image:radial-gradient(circle at 50% 40%,#000 0%,transparent 75%);mask-image:radial-gradient(circle at 50% 40%,#000 0%,transparent 75%)}
-.mentra-vn-mentra-os .green-grid-promo>div:not(.green-grid-promo__grid){position:relative;z-index:1}
-.mentra-vn-mentra-os .os-download-promo__actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:28px}
-@media(min-width:768px){.mentra-vn-mentra-os .green-grid-promo{padding:72px 64px;text-align:left;display:grid;grid-template-columns:1fr auto;align-items:center;gap:32px}.mentra-vn-mentra-os .os-download-promo__actions{align-items:flex-end}}
 
 /* Desktop nav flyout — matched to the compact live Mentra header. */
 @media(min-width:1024px){

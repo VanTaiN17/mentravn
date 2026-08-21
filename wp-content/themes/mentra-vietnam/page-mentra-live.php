@@ -186,7 +186,7 @@ mentra_vn_render_partial('site-header');
           <div class="rounded-xl p-4 -mx-4 transition-colors duration-200 hover:bg-surface-1"><h4 class="font-semibold mb-1" style="color:var(--ink-primary);font-size:16px">Mentra Live có chống nước không?</h4><p style="color:var(--ink-tertiary);font-size:15px">Không nên bơi khi đeo Mentra Live. Kính có thể chịu mưa nhẹ, mồ hôi và sử dụng hằng ngày, nhưng không nên dùng dưới mưa lớn.</p></div>
           <div class="rounded-xl p-4 -mx-4 transition-colors duration-200 hover:bg-surface-1"><h4 class="font-semibold mb-1" style="color:var(--ink-primary);font-size:16px">Có thể dùng Mentra Live khi không có Internet không?</h4><p style="color:var(--ink-tertiary);font-size:15px">Có. Bạn vẫn có thể quay video, chụp ảnh, gọi điện, nghe nhạc và dùng một số chức năng khác khi không có Internet.</p></div>
           <div class="rounded-xl p-4 -mx-4 transition-colors duration-200 hover:bg-surface-1"><h4 class="font-semibold mb-1" style="color:var(--ink-primary);font-size:16px">Trong hộp có gì?</h4><p style="color:var(--ink-tertiary);font-size:15px">Kính Mentra Live, hộp sạc, Infinity Cable và khăn microfiber.</p></div>
-          <div class="rounded-xl p-4 -mx-4 transition-colors duration-200 hover:bg-surface-1"><h4 class="font-semibold mb-1" style="color:var(--ink-primary);font-size:16px">Infinity Cable là gì?</h4><p style="color:var(--ink-tertiary);font-size:15px">Infinity Cable là cáp đặc biệt cắm trực tiếp vào kính để vừa đeo vừa sạc, giúp kéo dài thời gian sử dụng liên tục. Cáp có thể lấy nguồn từ pin dự phòng, điện thoại hoặc thiết bị USB-C. Xem phần <a href="#charging" style="color:var(--brand-text)">Sạc &amp; Infinity Cable</a> bên dưới.</p></div>
+          <div class="rounded-xl p-4 -mx-4 transition-colors duration-200 hover:bg-surface-1"><h4 class="font-semibold mb-1" style="color:var(--ink-primary);font-size:16px">Infinity Cable là gì?</h4><p style="color:var(--ink-tertiary);font-size:15px">Infinity Cable là cáp đặc biệt cắm trực tiếp vào kính để vừa đeo vừa sạc, giúp kéo dài thời gian sử dụng liên tục. Cáp có thể lấy nguồn từ pin dự phòng, điện thoại hoặc thiết bị USB-C. Xem trang <a href="<?php echo esc_url(home_url('/products/mentra-live-charging-cable/')); ?>" style="color:var(--brand-text)">Infinity Cable</a> để biết thêm chi tiết.</p></div>
         </div>
       </div>
       <div>
@@ -214,38 +214,6 @@ mentra_vn_render_partial('site-header');
 
 <?php $mentra_vn_summary(false); ?>
 
-</div>
-</div>
-</section>
-
-<section id="charging" class="section-md bg-surface-0" style="padding-left:var(--container-px);padding-right:var(--container-px)">
-<div class="mx-auto w-full" style="max-width:1200px">
-<div data-mentra-reveal>
-<div class="text-center mb-8 md:mb-12">
-<p class="eyebrow" style="color:var(--brand-text)">SẠC &amp; INFINITY CABLE</p>
-<h2 class="font-semibold mb-4 text-[22px] sm:text-[24px] md:text-[28px] xl:text-[32px] 2xl:text-[42px] leading-tight" style="color:var(--ink-primary)">Được thiết kế cho thời gian triển khai dài</h2>
-<p class="text-base md:text-lg xl:text-xl max-w-2xl mx-auto leading-relaxed" style="color:var(--ink-tertiary)">Nhiều phương án sạc giúp Mentra Live hoạt động xuyên suốt quá trình thử nghiệm, làm việc hiện trường và sử dụng cả ngày.</p>
-</div>
-<div class="charge-row">
-<div class="charge-col cursor-pointer">
-<div class="charge-card-img" style="background-color:var(--surface-2)">
-<img alt="Mentra Live infinity cable" class="charge-cable-img" src="<?php echo esc_url(mentra_vn_asset('micro_charge_cable_mentra_live.png')); ?>">
-</div>
-<div class="charge-text">
-<h3 class="font-semibold text-[20px] md:text-[22px] xl:text-[26px] leading-tight mb-2" style="color:var(--ink-primary)">Cáp Infinity</h3>
-<p class="text-[14px] md:text-[15px] xl:text-base leading-relaxed" style="color:var(--ink-tertiary)">Sạc kính ngay khi đang đeo. Cấp nguồn cho Mentra Live từ pin dự phòng, điện thoại hoặc bất kỳ nguồn USB-C nào để kéo dài thời gian hoạt động khi phát triển và triển khai.</p>
-</div>
-</div>
-<div class="charge-col cursor-pointer">
-<div class="charge-card-img" style="background-color:var(--surface-2)">
-<img alt="Mentra Live charging case" src="<?php echo esc_url(mentra_vn_asset('charging_case.webp')); ?>">
-</div>
-<div class="charge-text">
-<h3 class="font-semibold text-[20px] md:text-[22px] xl:text-[26px] leading-tight mb-2" style="color:var(--ink-primary)">Hộp sạc</h3>
-<p class="text-[14px] md:text-[15px] xl:text-base leading-relaxed" style="color:var(--ink-tertiary)">Thêm 2.200 mAh năng lượng. Cất giữ, bảo vệ và sạc lại Mentra Live giữa các phiên sử dụng bằng hộp sạc đi kèm.</p>
-</div>
-</div>
-</div>
 </div>
 </div>
 </section>
