@@ -228,6 +228,71 @@ function mentra_vn_frontend_lang_attributes($output) {
 }
 add_filter('language_attributes', 'mentra_vn_frontend_lang_attributes');
 
+// ==========================================================================
+// Phase 3: WooCommerce catalog-only data layer.
+// WooCommerce is used ONLY as a product-data CMS (SKU, images, attributes,
+// stock) here — never as an ecommerce transaction system. Every hook below
+// either (a) maps WC stock data to a Vietnamese label for the theme to
+// display, (b) keeps a product's own WC-generated URL from being a second,
+// duplicate-indexable copy of its real theme page, or (c) strips
+// price/cart/checkout affordances so WooCommerce can never expose a
+// purchase flow on the frontend.
+// ==========================================================================
+
+// Reusable WC stock_status -> Vietnamese label mapping. 'onbackorder' is
+// mapped in case a future catalog item genuinely needs a pre-launch state,
+// per business rule - not currently used by any real product/variation.
+function mentra_vn_stock_label($stock_status) {
+    switch ($stock_status) {
+        case 'instock': return 'Còn hàng';
+        case 'outofstock': return 'Hết hàng';
+        case 'onbackorder': return 'Sắp ra mắt';
+        default: return '';
+    }
+}
+
+// Fetch a WC product by SKU, returning null (not false) when WooCommerce
+// isn't active or the SKU isn't found, so callers can use ?? safely.
+function mentra_vn_get_product_by_sku($sku) {
+    if (!function_exists('wc_get_product_id_by_sku')) { return null; }
+    $id = wc_get_product_id_by_sku($sku);
+    if (!$id) { return null; }
+    $product = wc_get_product($id);
+    return $product ?: null;
+}
+
+// A WC product's own frontend URL (/product/<slug>/) must never be a second
+// indexable copy of a page that already has a real theme URL (e.g.
+// /mentra-live/). Redirect to the canonical URL stored in product meta.
+function mentra_vn_product_canonical_redirect() {
+    if (!function_exists('is_product') || !is_product()) { return; }
+    global $product;
+    $wc_product = $product instanceof WC_Product ? $product : wc_get_product(get_queried_object_id());
+    if (!$wc_product) { return; }
+    $canonical = $wc_product->get_meta('_mentra_vn_canonical_url', true);
+    if ($canonical) {
+        wp_safe_redirect(home_url($canonical), 301);
+        exit;
+    }
+}
+add_action('template_redirect', 'mentra_vn_product_canonical_redirect', 5);
+
+// Catalog-only hardening: no product on this site is ever purchasable,
+// site-wide and forever, regardless of how many products/variations exist.
+add_filter('woocommerce_is_purchasable', '__return_false');
+add_filter('woocommerce_variation_is_purchasable', '__return_false');
+
+// No price is ever shown, anywhere WooCommerce would normally render one
+// (shop loops, single product summary, structured data helpers that pull
+// from get_price_html()).
+add_filter('woocommerce_get_price_html', '__return_empty_string');
+
+// Cart fragments (the AJAX mini-cart refresh script) serve no purpose with
+// no cart flow — drop the extra request/JS.
+add_action('wp_enqueue_scripts', function () {
+    wp_dequeue_script('wc-cart-fragments');
+}, 100);
+
 // Remove default block styles on the source-mirror templates so they cannot alter the supplied design.
 add_action('wp_enqueue_scripts', function(){
     wp_dequeue_style('wp-block-library');
