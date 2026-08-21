@@ -353,7 +353,7 @@ body.mentra-menu-open{overflow:hidden}
 @media(min-width:64em){
   .product-detail-grid{grid-template-columns:minmax(0,1.1fr) minmax(25rem,.9fr);gap:max(3rem,min(5vw,4.5rem))}
   .product-detail-media-card{height:max(360px,min(38vw,520px))}
-  .product-detail-summary{align-self:start;justify-self:end;position:sticky;top:calc(var(--height-nav, 3.5rem) + 1.5rem)}
+  .product-detail-summary{align-self:start;justify-self:end;position:sticky;top:calc(var(--height-nav, 3.5rem) + 3.5rem)}
   .product-detail-description{font-size:1.0625rem}
 }
 @media(min-width:96em){
