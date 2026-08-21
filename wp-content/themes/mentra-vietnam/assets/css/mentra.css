@@ -1604,8 +1604,10 @@ body{font-optical-sizing:auto}
 .green-grid-promo__media{position:absolute!important;right:max(20px,min(5vw,96px))!important;bottom:0!important;z-index:1!important;display:flex;width:min(43%,580px);height:92%;align-items:flex-end;justify-content:flex-end;pointer-events:none}
 .green-grid-promo__media img{display:block;max-width:100%;max-height:100%;-o-object-fit:contain;object-fit:contain;-o-object-position:bottom right;object-position:bottom right;filter:drop-shadow(18px 18px 28px rgba(0,0,0,.18))}
 .apps-phone-promo .green-grid-promo__media{bottom:max(28px,min(3.4vw,48px))!important;height:calc(92% - max(28px,min(3.4vw,48px)))}
+.green-grid-promo-section.page-hero-pad.apps-phone-promo{padding:104px 56px!important}
 
 @media (max-width: 767px){
+  .green-grid-promo-section.page-hero-pad.apps-phone-promo{padding:48px 20px!important}
   .green-grid-promo__content{max-width:none;padding:32px 28px 0}
   .green-grid-promo__title{font-size:max(32px,min(10vw,46px))}
   .green-grid-promo__body{font-size:18px}
