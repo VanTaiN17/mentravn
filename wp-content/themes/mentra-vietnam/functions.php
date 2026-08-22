@@ -44,6 +44,23 @@ function mentra_vn_assets() {
 
     $contact_type = mentra_vn_current_contact_type();
 
+    // Final forms hotfix: form_type/nonce replace Referer as the AJAX
+    // security boundary. mentra_vn_current_form_type() covers Career (which
+    // mentra_vn_current_contact_type() deliberately does not - see that
+    // function's docblock), and mentra_vn_current_purchase_context()
+    // resolves the Sales-only Purchase intent/product, validated against
+    // the server allowlist at render time - an invalid/missing product
+    // silently falls back to a normal Sales nonce/context, never a
+    // Purchase one. The nonce created here is scoped to exactly this
+    // combination (see contact_nonce_action() in the plugin) - a client
+    // that edits form_type/intent/product before submitting can never make
+    // it match a nonce issued for a different context.
+    $form_type = mentra_vn_current_form_type();
+    $purchase = mentra_vn_current_purchase_context($form_type);
+    $form_nonce = $form_type ? mentra_vn_create_contact_nonce($form_type, $purchase['intent'], $purchase['product']) : '';
+    $is_purchase = ($purchase['intent'] === 'purchase' && $purchase['product'] !== '');
+    $product_name = $is_purchase ? mentra_vn_product_name($purchase['product']) : '';
+
     wp_localize_script('mentra-runtime', 'MENTRA_VN', [
         'home' => trailingslashit(home_url('/')),
         'theme' => MENTRA_VN_THEME_URI,
@@ -54,7 +71,12 @@ function mentra_vn_assets() {
         'logo' => MENTRA_VN_THEME_URI . '/assets/mentra_logo.svg',
         'contactType' => $contact_type,
         'contactTypeLabel' => $contact_type ? mentra_vn_contact_type_label($contact_type) : '',
-        'contactTypeHeading' => $contact_type ? mentra_vn_contact_type_heading($contact_type) : '',
+        'contactTypeHeading' => $is_purchase ? 'Liên hệ mua hàng' : ($contact_type ? mentra_vn_contact_type_heading($contact_type) : ''),
+        'formType' => $form_type,
+        'formNonce' => $form_nonce,
+        'formIntent' => $purchase['intent'],
+        'formProduct' => $purchase['product'],
+        'formProductName' => $product_name,
     ]);
 }
 add_action('wp_enqueue_scripts', 'mentra_vn_assets');
@@ -108,6 +130,50 @@ function mentra_vn_contact_type_heading($type) {
         'media' => 'Liên hệ truyền thông',
     ];
     return $headings[$type] ?? 'Liên hệ Mentra';
+}
+
+/**
+ * Final forms hotfix: the full six-type form-type resolution used ONLY to
+ * scope the security nonce (see mentra_vn_assets()) - wraps
+ * mentra_vn_current_contact_type() (general/sales/support/partnership/
+ * media) and adds Career, which that function intentionally omits (Career
+ * always uses a fixed heading with no locked-context badge, so it never
+ * needed the 5-type resolver). Returns null on every page that renders
+ * neither a Contact-style form nor the Career form - Newsletter keeps using
+ * its own separate 'mentra_vn_public' nonce, unaffected by this.
+ */
+function mentra_vn_current_form_type() {
+    if (is_page(['tuyen-dung', 'careers'])) { return 'career'; }
+    return mentra_vn_current_contact_type();
+}
+
+/**
+ * Final forms hotfix: resolves the Sales-only Purchase intent/product for
+ * the CURRENT request from ?intent=&mentra_product=. Only ever non-empty
+ * when $type is 'sales'. The query param is deliberately "mentra_product",
+ * NOT the shorter "product" the brief's example URL used - WooCommerce
+ * registers 'product' as its own public query var (for the `product` CPT's
+ * /product/%postname%/ permalink), so a plain ?product=mentra-live on
+ * /lien-he/ collides with it and WordPress's redirect_canonical() 301s the
+ * request away to /product/mentra-live-camera-glasses/ before this code
+ * ever runs (confirmed live - see docs/forms-hotfix-report.md). The
+ * product query value is validated against the server allowlist
+ * (mentra_vn_is_valid_product()) here, at render time - an invalid,
+ * unrecognized, or missing product (or intent requested on a non-Sales
+ * type) returns an empty context, which silently renders the normal Sales
+ * form instead of Purchase mode. The raw query value is never echoed
+ * anywhere, on this path or the AJAX path (see contact_ajax() in the
+ * plugin, which independently re-validates the same way from POST).
+ */
+function mentra_vn_current_purchase_context($type) {
+    if ($type !== 'sales') { return ['intent' => '', 'product' => '']; }
+    $intent = isset($_GET['intent']) ? sanitize_key(wp_unslash($_GET['intent'])) : '';
+    if ($intent !== 'purchase') { return ['intent' => '', 'product' => '']; }
+    $product = isset($_GET['mentra_product']) ? sanitize_key(wp_unslash($_GET['mentra_product'])) : '';
+    if (!function_exists('mentra_vn_is_valid_product') || !mentra_vn_is_valid_product($product)) {
+        return ['intent' => '', 'product' => ''];
+    }
+    return ['intent' => 'purchase', 'product' => $product];
 }
 
 /**

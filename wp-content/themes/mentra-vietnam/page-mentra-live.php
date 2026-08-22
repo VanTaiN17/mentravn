@@ -76,7 +76,7 @@ $mentra_vn_summary = function ($mobile) use ($stock_label, $spec_rows, $press_lo
         <div class="product-detail-price mb-4"><?php echo esc_html($stock_label); ?></div>
         <p class="product-detail-description mb-5">Kính thông minh tích hợp camera, loa, micro và SDK mở cho các quy trình AI tùy chỉnh. Được thiết kế cho nhà phát triển và triển khai doanh nghiệp.</p>
         <div class="mb-5">
-            <a class="btn-base btn-lg w-full btn-primary" style="display:flex" href="<?php echo esc_url(home_url('/lien-he/?topic=sales')); ?>">Liên hệ mua hàng</a>
+            <a class="btn-base btn-lg w-full btn-primary" style="display:flex" href="<?php echo esc_url(add_query_arg(['topic' => 'sales', 'intent' => 'purchase', 'mentra_product' => 'mentra-live'], home_url('/lien-he/'))); ?>">Liên hệ mua hàng</a>
         </div>
         <div class="mb-5 border-t py-4" style="border-color:var(--border-subtle)">
             <p class="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em]" style="color:var(--ink-tertiary)">Được nhắc đến trên:</p>

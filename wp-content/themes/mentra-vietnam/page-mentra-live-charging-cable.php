@@ -46,7 +46,7 @@ $mentra_vn_infinity_summary = function ($mobile) use ($stock_label, $spec_rows) 
         <p class="product-detail-description mb-4">Sạc Mentra Live ngay cả khi đang di chuyển với Infinity Cable. Kéo dài thời gian sử dụng kính thông minh gần như không giới hạn.</p>
         <p class="product-detail-description mb-5">Dùng Infinity Cable để đồng bộ dữ liệu hoặc lập trình cho Mentra Live.</p>
         <div class="mb-5">
-            <a class="btn-base btn-lg w-full btn-primary" style="display:flex" href="<?php echo esc_url(home_url('/lien-he/?topic=sales')); ?>">Liên hệ mua hàng</a>
+            <a class="btn-base btn-lg w-full btn-primary" style="display:flex" href="<?php echo esc_url(add_query_arg(['topic' => 'sales', 'intent' => 'purchase', 'mentra_product' => 'mentra-live-charging-cable'], home_url('/lien-he/'))); ?>">Liên hệ mua hàng</a>
         </div>
         <div class="mb-5">
             <div class="product-detail-spec-table divide-y border-y" style="border-color:var(--border-subtle)">

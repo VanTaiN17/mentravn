@@ -64,12 +64,67 @@
     wrapper.innerHTML='<label class="mentra-locked-type-label">Loại yêu cầu</label><div class="mentra-locked-type" aria-readonly="true"></div>';
     qs('.mentra-locked-type',wrapper).textContent=label;
   }
+  // Final forms hotfix: Purchase mode reuses the same #contact-company
+  // wrapper slot to show a non-editable "Sản phẩm" badge (server-approved
+  // product name only - never raw query text) instead of the free-text
+  // Company field, which Purchase mode does not collect. Reuses the
+  // already-styled .mentra-locked-type class, same as addLockedType().
+  function addLockedProduct(form,productName){
+    const company=qs('#contact-company',form);
+    if(!company||!productName) return null;
+    const wrapper=company.parentNode;
+    wrapper.innerHTML='<label class="mentra-locked-type-label">Sản phẩm</label><div class="mentra-locked-type" aria-readonly="true"></div>';
+    qs('.mentra-locked-type',wrapper).textContent=productName+' 🔒';
+    return wrapper;
+  }
+  // Clones an existing input's classes/inline style so a JS-injected field
+  // matches the static source markup exactly, without duplicating its long
+  // utility-class string here.
+  function buildPurchaseField(refInput,id,name,label,type){
+    const wrap=document.createElement('div');
+    const lbl=document.createElement('label');
+    lbl.className='block text-sm font-semibold mb-2';
+    lbl.style.color='var(--ink-primary)';
+    lbl.setAttribute('for',id);
+    lbl.textContent=label;
+    const input=document.createElement('input');
+    input.className=refInput.className;
+    const refStyle=refInput.getAttribute('style');
+    if(refStyle) input.setAttribute('style',refStyle);
+    input.type=type;
+    input.id=id;
+    input.name=name;
+    input.required=true;
+    wrap.appendChild(lbl);
+    wrap.appendChild(input);
+    return {wrap:wrap,input:input};
+  }
+  // Injects the Phone + Address fields Purchase mode needs, immediately
+  // before the shared #contact-message field. Idempotent (returns the
+  // existing fields if already injected, e.g. a second initContact() pass).
+  function addPurchaseFields(form){
+    const existingPhone=qs('#mentra-purchase-phone',form);
+    const existingAddress=qs('#mentra-purchase-address',form);
+    if(existingPhone&&existingAddress) return {phone:existingPhone,address:existingAddress};
+    const refInput=qs('#contact-name',form);
+    const message=qs('#contact-message',form);
+    const messageWrap=message?message.parentNode:null;
+    if(!refInput||!messageWrap||!messageWrap.parentNode) return null;
+    const grid=document.createElement('div');
+    grid.className='grid sm:grid-cols-2 gap-5';
+    const phoneField=buildPurchaseField(refInput,'mentra-purchase-phone','phone','Số điện thoại','tel');
+    const addressField=buildPurchaseField(refInput,'mentra-purchase-address','address','Địa chỉ','text');
+    grid.appendChild(phoneField.wrap);
+    grid.appendChild(addressField.wrap);
+    messageWrap.parentNode.insertBefore(grid,messageWrap);
+    return {phone:phoneField.input,address:addressField.input};
+  }
   function addFormError(form){
     let el=qs('.mentra-form-error',form);
     if(!el){el=document.createElement('p');el.className='mentra-form-error';el.setAttribute('role','alert');form.appendChild(el);}
     return el;
   }
-  function addSuccessCard(form){
+  function addSuccessCard(form,isPurchase,productName){
     const next=form.nextElementSibling;
     if(next&&next.classList&&next.classList.contains('mentra-form-success')) return next;
     const card=document.createElement('div');
@@ -78,11 +133,17 @@
     card.setAttribute('role','status');
     card.setAttribute('aria-live','polite');
     card.hidden=true;
+    const heading=isPurchase?'Gửi yêu cầu thành công':'Gửi thành công';
+    const message=(isPurchase&&productName)
+      ? ('Cảm ơn bạn đã quan tâm đến '+productName+'. Chúng tôi đã nhận được yêu cầu mua hàng của bạn và sẽ liên hệ trong thời gian sớm nhất.')
+      : 'Cảm ơn bạn đã liên hệ với Mentra. Chúng tôi đã nhận được thông tin của bạn và sẽ phản hồi trong thời gian sớm nhất.';
     card.innerHTML=
       '<div class="mentra-form-success-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'+
-      '<h2 class="mentra-form-success-heading">Gửi thành công</h2>'+
-      '<p class="mentra-form-success-message">Cảm ơn bạn đã liên hệ với Mentra. Chúng tôi đã nhận được thông tin của bạn và sẽ phản hồi trong thời gian sớm nhất.</p>'+
+      '<h2 class="mentra-form-success-heading"></h2>'+
+      '<p class="mentra-form-success-message"></p>'+
       '<a class="btn-base btn-primary mentra-form-success-cta" href="'+MENTRA_VN.home+'">Về trang chủ</a>';
+    qs('.mentra-form-success-heading',card).textContent=heading;
+    qs('.mentra-form-success-message',card).textContent=message;
     form.parentNode.insertBefore(card,form.nextSibling);
     return card;
   }
@@ -630,31 +691,60 @@
   function initContact(){
     qsa('form[data-mentra-contact="1"]').forEach(form=>{
       const submit=qs('button[type="submit"]',form);
+      const isPurchase=!!(MENTRA_VN.formIntent==='purchase'&&MENTRA_VN.formProduct&&MENTRA_VN.formProductName);
       addFormHeader(form,MENTRA_VN.contactTypeHeading||'Liên hệ Mentra');
-      if(MENTRA_VN.contactType) addLockedType(form,MENTRA_VN.contactTypeLabel);
+      let purchaseFields=null;
+      if(isPurchase){
+        addLockedProduct(form,MENTRA_VN.formProductName);
+        purchaseFields=addPurchaseFields(form);
+        const msgLabel=qs('label[for="contact-message"]',form);
+        if(msgLabel) msgLabel.textContent='Nội dung / Ghi chú';
+        if(submit) submit.textContent='Gửi yêu cầu mua hàng';
+      }else if(MENTRA_VN.contactType){
+        addLockedType(form,MENTRA_VN.contactTypeLabel);
+      }
       const errorEl=addFormError(form);
-      addSuccessCard(form);
+      addSuccessCard(form,isPurchase,MENTRA_VN.formProductName);
       ensureRecaptchaWidget(form);
       form.addEventListener('submit',async e=>{
         e.preventDefault();
         const name=qs('#contact-name,input[name="name"]',form);
         const email=qs('#contact-email,input[type="email"]',form);
-        const company=qs('#contact-company,input[name="company"]',form);
-        const subject=qs('#contact-subject,select[name="subject"],select[name="topic"]',form);
         const message=qs('#contact-message,textarea',form);
+        const company=isPurchase?null:qs('#contact-company,input[name="company"]',form);
+        const phone=isPurchase&&purchaseFields?purchaseFields.phone:null;
+        const address=isPurchase&&purchaseFields?purchaseFields.address:null;
         if(!name||!email||!message||!name.value.trim()||!email.checkValidity()||!message.value.trim()){
           if(email && !email.checkValidity()) email.reportValidity();
+          return;
+        }
+        if(isPurchase&&(!phone||!phone.value.trim()||!address||!address.value.trim())){
+          if(phone && !phone.value.trim()) phone.reportValidity();
+          else if(address && !address.value.trim()) address.reportValidity();
           return;
         }
         errorEl.textContent='';
         const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
         try{
-          const body=new URLSearchParams({action:'mentra_vn_contact_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),company:company?company.value.trim():'',subject:subject?subject.value:'',message:message.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
+          const params={
+            action:'mentra_vn_contact_ajax',
+            nonce:MENTRA_VN.formNonce||'',
+            form_type:MENTRA_VN.formType||'',
+            intent:MENTRA_VN.formIntent||'',
+            mentra_product:MENTRA_VN.formProduct||'',
+            name:name.value.trim(),
+            email:email.value.trim(),
+            message:message.value.trim(),
+            g_recaptcha_response:getRecaptchaResponse(form)
+          };
+          if(isPurchase){ params.phone=phone.value.trim(); params.address=address.value.trim(); }
+          else{ params.company=company?company.value.trim():''; }
+          const body=new URLSearchParams(params);
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
           resetRecaptcha(form);
           if(j.success){ showFormSuccess(form); return; }
-          if(submit) submit.textContent='Gửi lại';
+          if(submit) submit.textContent=isPurchase?'Gửi lại yêu cầu':'Gửi lại';
           errorEl.textContent=(j&&j.data&&j.data.message)?j.data.message:'Có lỗi xảy ra, vui lòng thử lại.';
         }catch(_){if(submit)submit.textContent='Gửi lại';errorEl.textContent='Có lỗi xảy ra, vui lòng thử lại.';resetRecaptcha(form);}
         setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
@@ -688,7 +778,7 @@
         const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
         status.textContent=''; status.classList.remove('is-error','is-success');
         try{
-          const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
+          const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.formNonce||'',form_type:MENTRA_VN.formType||'',name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
           resetRecaptcha(form);
