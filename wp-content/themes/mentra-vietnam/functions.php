@@ -243,8 +243,15 @@ function mentra_vn_source_map() {
         'media-inquiries' => 'media-inquiries',
         'chinh-sach-quyen-rieng-tu' => 'privacy-policy',
         'privacy-policy' => 'privacy-policy',
-        'quyen-rieng-tu' => 'privacy',
-        'privacy' => 'privacy',
+        // Phase 8: 'quyen-rieng-tu' and bare 'privacy' deliberately removed -
+        // both used to resolve (via mentra_vn_get_source_key()'s raw-path
+        // fallback) to the 'privacy' source file, which is byte-identical to
+        // the homepage in the original capture (a known capture anomaly, not
+        // real privacy-policy content - see docs/site-audit.md). Neither path
+        // has ever been a real published Page. Removing them here makes both
+        // paths genuinely 404 instead of silently serving homepage content at
+        // HTTP 200 under a "Page not found" title. The real, correct privacy
+        // policy stays at chinh-sach-quyen-rieng-tu/privacy-policy above.
         'dieu-khoan-dich-vu' => 'terms-of-service',
         'terms-of-service' => 'terms-of-service',
         'chinh-sach-van-chuyen' => 'shipping-policy',
@@ -387,14 +394,76 @@ function mentra_vn_get_mentra_redirect() {
 }
 add_action('template_redirect', 'mentra_vn_get_mentra_redirect');
 
+/**
+ * Phase 8: every route below has a real, canonical Vietnamese-slug WP Page
+ * (created in mentra-vietnam-core.php's create_pages()), but its English
+ * source-file alias (mentra_vn_source_map()'s bare-English keys, e.g.
+ * 'support'/'contact'/'about') is ALSO reachable directly - not through a
+ * real Page, but through 404.php's raw-path fallback
+ * (mentra_vn_get_source_key()'s final branch), which renders the exact same
+ * static-source HTML a second time at HTTP 200. Because that fallback path
+ * never runs through a real WP_Query page result, WordPress's own is_404()
+ * conditional stays true even after 404.php's manual status_header(200) -
+ * so Yoast (which correctly suppresses meta on real 404s) never outputs
+ * ANY robots/canonical/OG tags on these pages, and the <title> falls back to
+ * a literal "Page not found" - while the body renders full, real duplicate
+ * content. Confirmed live during Phase 8 audit (docs/phase-8-report.md).
+ * 301-redirecting the English alias to its canonical Vietnamese Page fixes
+ * this: no more duplicate-content page with no SEO signal, and any stray
+ * inbound link to the old English path still lands somewhere real instead
+ * of a dead end. This does not affect brand/product-name slugs that are
+ * identical in both languages (nimo, even-realities, discord, legacy) -
+ * those only ever have one path form and are already real Pages.
+ */
+function mentra_vn_source_alias_redirects() {
+    static $aliases = [
+        'os' => 'mentra-os',
+        'live' => 'mentra-live',
+        'devs' => 'nha-phat-trien',
+        'about' => 've-mentra',
+        'contact' => 'lien-he',
+        'support' => 'ho-tro',
+        'apps' => 'ung-dung',
+        'compare' => 'so-sanh',
+        'prescriptions' => 'trong-kinh',
+        'captions' => 'phu-de',
+        'notes' => 'mentra-notes',
+        'careers' => 'tuyen-dung',
+        'socials' => 'mang-xa-hoi',
+        'partnerships' => 'doi-tac',
+        'media-inquiries' => 'truyen-thong',
+        'privacy-policy' => 'chinh-sach-quyen-rieng-tu',
+        'terms-of-service' => 'dieu-khoan-dich-vu',
+        'shipping-policy' => 'chinh-sach-van-chuyen',
+        'refund-policy' => 'chinh-sach-doi-tra',
+        'accessibility' => 'kha-nang-tiep-can',
+        'recalls' => 'thu-hoi',
+        'blog' => 'tin-tuc',
+        'blogs' => 'tin-tuc',
+        'get' => 'tai-ung-dung',
+    ];
+    $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+    if (isset($aliases[$path])) {
+        wp_safe_redirect(home_url('/' . $aliases[$path] . '/'), 301);
+        exit;
+    }
+}
+add_action('template_redirect', 'mentra_vn_source_alias_redirects');
+
 // No ecommerce checkout flow is part of this site's scope (WooCommerce is
 // installed only as a future catalog-only CMS). Keep its default public
 // shop/cart/checkout/account routes out of the public user flow. Using a
 // temporary (302) redirect rather than 301, since /shop/ in particular may
 // become a real public catalog listing route in a later product phase.
+// Phase 8: also covers product-category taxonomy archives - both real
+// products are filed under WooCommerce's default "Uncategorized" term (no
+// real category taxonomy exists yet), so /product-category/uncategorized/
+// was publicly reachable at HTTP 200 serving WooCommerce's stock English
+// "Coming Soon" placeholder block, unindexed by nothing (no noindex, no
+// redirect) - confirmed live during the Phase 8 audit.
 function mentra_vn_disable_woocommerce_public_routes() {
     if (!function_exists('is_shop')) { return; }
-    if (is_shop() || is_cart() || is_checkout() || is_account_page()) {
+    if (is_shop() || is_cart() || is_checkout() || is_account_page() || is_product_taxonomy()) {
         wp_safe_redirect(home_url('/'), 302);
         exit;
     }
@@ -412,9 +481,13 @@ function mentra_vn_disable_default_wp_archives() {
 }
 add_action('template_redirect', 'mentra_vn_disable_default_wp_archives');
 
-// Frontend content is Vietnamese, but the site's WP locale (and thus
-// language_attributes()) is still en_US. Force the correct document
-// language on the public frontend only, without touching wp-admin.
+// Phase 8: the real WordPress site locale is now 'vi' (see
+// Mentra_Vietnam_Core_99::maybe_set_site_locale() - fixed the root cause of
+// a long-standing SEO defect where Yoast's og:locale/inLanguage still said
+// en_US/en-US despite this html lang already showing vi-VN). WordPress's
+// own locale 'vi' renders language_attributes() as lang="vi" (no region);
+// this filter refines that to the more specific "vi-VN" BCP-47 tag on the
+// public frontend only, without touching wp-admin.
 function mentra_vn_frontend_lang_attributes($output) {
     if (is_admin()) { return $output; }
     return preg_replace('/lang="[^"]*"/', 'lang="vi-VN"', $output, 1);

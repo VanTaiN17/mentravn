@@ -80,8 +80,14 @@ final class Mentra_Vietnam_Core_99 {
     const RATE_LIMIT_WINDOW = 600; // 10 minutes
 
     public static function init() {
+        add_action('init', [__CLASS__, 'maybe_set_site_locale'], 5);
         add_action('init', [__CLASS__, 'register_subscriber_cpt']);
         add_action('init', [__CLASS__, 'maybe_create_pages'], 20);
+        add_action('init', [__CLASS__, 'maybe_noindex_duplicate_pages'], 21);
+        add_action('init', [__CLASS__, 'maybe_noindex_product_archive'], 21);
+        add_action('init', [__CLASS__, 'maybe_noindex_product_category_archive'], 21);
+        add_action('init', [__CLASS__, 'maybe_set_site_identity'], 5);
+        add_action('init', [__CLASS__, 'maybe_set_page_meta_descriptions'], 22);
         add_action('init', [__CLASS__, 'maybe_create_mentra_live_product'], 25);
         add_action('init', [__CLASS__, 'maybe_create_infinity_cable_product'], 25);
         add_action('init', [__CLASS__, 'maybe_create_news_category'], 26);
@@ -101,6 +107,34 @@ final class Mentra_Vietnam_Core_99 {
         self::register_subscriber_cpt();
         self::create_pages();
         flush_rewrite_rules();
+    }
+
+    /**
+     * Phase 8: root-cause fix for a long-standing SEO defect - the frontend
+     * always rendered `<html lang="vi-VN">` (functions.php regex-patches
+     * language_attributes() output), but the site's actual WordPress locale
+     * (the 'WPLANG' option, empty by default = 'en_US') was never changed,
+     * so anything that reads get_locale() directly instead of the patched
+     * HTML - Yoast's og:locale, its JSON-LD inLanguage - kept reporting
+     * en_US/en-US. Confirmed live: get_locale() was 'en_US' despite
+     * lang="vi-VN" on every page. Setting the real WordPress site locale
+     * (equivalent to an admin choosing "Tiếng Việt" at Settings → General)
+     * fixes it at the source for every locale-derived output, not just the
+     * one the old regex patch happened to target - verified live afterward
+     * that Yoast's og:locale/inLanguage both switched to vi_VN/vi correctly.
+     * Idempotent (checks the current value first) and self-healing on a
+     * fresh production DB/install, matching this plugin's existing
+     * maybe_create_pages()-style pattern - not a one-off manual DB edit.
+     * No 'vi' translation files need to be installed for this to be
+     * correct: every user-facing string on this site is custom
+     * theme/plugin-rendered Vietnamese content, not core WP i18n strings,
+     * so there is nothing for WordPress to "translate" - only the
+     * locale-derived metadata (html lang, Yoast/OG/schema locale) changes.
+     */
+    public static function maybe_set_site_locale() {
+        if (get_option('WPLANG') !== 'vi') {
+            update_option('WPLANG', 'vi');
+        }
     }
 
     public static function register_subscriber_cpt() {
@@ -157,6 +191,15 @@ final class Mentra_Vietnam_Core_99 {
             'Even Realities' => 'even-realities',
             'Discord' => 'discord',
             'Legacy MentraOS' => 'legacy',
+            // Phase 8: was previously only reachable via the 404.php soft-render
+            // fallback (mentra_vn_get_source_key()'s raw-path branch), never a
+            // real published Page - meaning it served HTTP 200 content with a
+            // stale "Page not found" <title> and no Yoast robots/canonical meta
+            // at all (is_404() stays true even after 404.php's status_header(200)
+            // override). Publishing it as a real Page fixes both; rendering is
+            // unchanged (still mentra_vn_render_source('get') via the normal
+            // source-map path.php route). See docs/phase-8-report.md.
+            'Tải ứng dụng' => 'tai-ung-dung',
             // Phase 4.6: real Shopify product page (gid://shopify/Product/9286483280124,
             // handle mentra-live-charging-cable), not an anchor/section inside Mentra
             // Live - see docs/product-classification.md. Rendered by
@@ -179,12 +222,163 @@ final class Mentra_Vietnam_Core_99 {
      * slugs), so this is safe to trigger repeatedly.
      */
     public static function maybe_create_pages() {
-        // Bumped to v3 for Phase 4.6's new Infinity Cable page - create_pages()/
-        // page() are idempotent per-slug, so this only creates the one new page,
-        // it does not touch or recreate any of the existing ones.
-        if (get_option('mentra_vn_pages_synced_v3')) { return; }
+        // Bumped to v4 for Phase 8's tai-ung-dung page (see create_pages()) -
+        // create_pages()/page() are idempotent per-slug, so this only creates
+        // the one new page, it does not touch or recreate any of the existing
+        // ones.
+        if (get_option('mentra_vn_pages_synced_v4')) { return; }
         self::create_pages();
-        update_option('mentra_vn_pages_synced_v3', 1);
+        update_option('mentra_vn_pages_synced_v4', 1);
+    }
+
+    /**
+     * Phase 8: Yoast's page-sitemap.xml was found listing eight duplicate/
+     * system pages that each only ever exist to immediately redirect
+     * somewhere else at runtime: the four legal stub slugs
+     * (mentra_vn_legal_slug_redirects() in functions.php) and WooCommerce's
+     * own default shop/cart/checkout/my-account pages
+     * (mentra_vn_disable_woocommerce_public_routes()). The runtime redirect
+     * is already correct (a real visitor or crawler following the link is
+     * never shown duplicate content), but each is still a real published
+     * WP Page, so Yoast has no way to know not to list it - it only
+     * respects Yoast's own noindex meta. Same fix already used for the
+     * WooCommerce product duplicate URLs (see
+     * '_yoast_wpseo_meta-robots-noindex' in create_mentra_live_product()/
+     * create_infinity_cable_product()), applied here too, so this is
+     * consistent with the existing pattern rather than a new one. Cannot
+     * simply unpublish these pages: the legal stub pages need to stay
+     * is_page()-resolvable for their own redirect to fire, and
+     * shop/cart/checkout/my-account are WooCommerce's own required anchor
+     * pages (referenced by its own page-id options). Idempotent
+     * (checks/skips already-set meta) and safe to run on every 'init'.
+     */
+    public static function maybe_noindex_duplicate_pages() {
+        $slugs = ['doi-tra', 'van-chuyen', 'dieu-khoan', 'chinh-sach-bao-mat', 'shop', 'cart', 'checkout', 'my-account'];
+        foreach ($slugs as $slug) {
+            $page = get_page_by_path($slug, OBJECT, 'page');
+            if (!$page) { continue; }
+            if (get_post_meta($page->ID, '_yoast_wpseo_meta-robots-noindex', true) !== '1') {
+                update_post_meta($page->ID, '_yoast_wpseo_meta-robots-noindex', '1');
+            }
+        }
+    }
+
+    /**
+     * Phase 8: real SEO metadata fix - confirmed live that the WordPress
+     * site title ('blogname' option) was still the literal install slug
+     * "mentra-vn" (never set to a real name), which Yoast uses as the
+     * %%sitename%% token in every page's <title> tag - so every single
+     * page's browser-tab/search-result title ended in "- mentra-vn", and
+     * the homepage's own title (built from
+     * "%%sitename%% %%page%% %%sep%% %%sitedesc%%" with both %%page%% and
+     * %%sitedesc%% empty) rendered as the literally broken "mentra-vn -".
+     * 'blogdescription' (the tagline, also feeds Yoast's homepage fallback
+     * description) was empty too. Both values are real, accurate, existing
+     * facts about this project (the name from CLAUDE.md/every doc in this
+     * repo; the tagline is the homepage's own real hero line, not invented
+     * copy) - this is a root-cause site-configuration fix, not new content.
+     */
+    public static function maybe_set_site_identity() {
+        if (get_option('blogname') === 'mentra-vn') {
+            update_option('blogname', 'Mentra Việt Nam');
+        }
+        if (get_option('blogdescription') === '') {
+            update_option('blogdescription', 'Kính thông minh mã nguồn mở dành cho đội ngũ hiện trường và nhà phát triển xây dựng quy trình AI tùy chỉnh.');
+        }
+        // Homepage isn't a real WP Page (show_on_front is 'posts', but
+        // front-page.php overrides that at render time - see functions.php)
+        // so there's no post to attach a per-page Yoast description to;
+        // this is Yoast's own site-wide home-description option instead.
+        // Same real homepage tagline as blogdescription above.
+        if (class_exists('WPSEO_Options') && WPSEO_Options::get('metadesc-home-wpseo', '') === '') {
+            WPSEO_Options::set('metadesc-home-wpseo', 'Kính thông minh mã nguồn mở dành cho đội ngũ hiện trường và nhà phát triển xây dựng quy trình AI tùy chỉnh.');
+        }
+    }
+
+    /**
+     * Phase 8: real SEO metadata fix, companion to
+     * maybe_set_site_identity(). Several priority pages had NO meta
+     * description at all, or leaked broken placeholder text into one -
+     * confirmed live. Root cause: this site's real visible content is
+     * rendered from templates/source/*.html (mentra_vn_render_source()),
+     * completely separate from each WP Page's own post_content field -
+     * Yoast's automatic description fallback reads that disconnected
+     * post_content directly, which for these pages is either empty or a
+     * stale stub (e.g. /lien-he/'s post_content still contains a literal,
+     * never-registered "[mentra_contact_form]" shortcode remnant from
+     * before this architecture existed - that string was leaking straight
+     * into og:description). Fixing the actual post_content wholesale is
+     * out of scope (risks the visual/content rules), so this sets a real
+     * Yoast per-page description directly instead - each string below is
+     * copied verbatim from that exact page's own already-published,
+     * approved copy (the page's real intro paragraph/heading), never
+     * invented. /ve-mentra/ already has a correct one (confirmed live) and
+     * is intentionally not touched; the 16 real WordPress Posts already
+     * get a correct auto-generated description from their own real
+     * post_content and don't need this either.
+     */
+    public static function maybe_set_page_meta_descriptions() {
+        $descriptions = [
+            'lien-he' => 'Liên hệ Mentra Việt Nam. Trao đổi về đặt hàng, pilot doanh nghiệp, hợp tác, truyền thông hoặc hỗ trợ kỹ thuật.',
+            'tin-tuc' => 'Tin tức và bài viết về kính thông minh.',
+            'mentra-live' => 'Kính thông minh tích hợp camera, loa, micro và SDK mở cho các quy trình AI tùy chỉnh. Được thiết kế cho nhà phát triển và triển khai doanh nghiệp.',
+            'mentra-live-charging-cable' => 'Sạc Mentra Live ngay cả khi đang di chuyển với Infinity Cable. Kéo dài thời gian sử dụng kính thông minh gần như không giới hạn.',
+            'mentra-os' => 'MentraOS mang hệ sinh thái ứng dụng, SDK dành cho nhà phát triển và trải nghiệm liền mạch đến kính thông minh của bạn — 100% mã nguồn mở.',
+            'even-realities' => 'Kết nối Even Realities G1 hoặc G2 với Mentra để dùng phụ đề, ghi chú, dịch thuật và nhiều tính năng khác trong một ứng dụng mã nguồn mở.',
+        ];
+        foreach ($descriptions as $slug => $description) {
+            $page = get_page_by_path($slug, OBJECT, 'page');
+            if (!$page) { continue; }
+            if (get_post_meta($page->ID, '_yoast_wpseo_metadesc', true) === '') {
+                update_post_meta($page->ID, '_yoast_wpseo_metadesc', $description);
+            }
+        }
+    }
+
+    /**
+     * Phase 8: companion to maybe_noindex_duplicate_pages(). That method
+     * correctly removed the shop/cart/checkout/my-account PAGES from
+     * page-sitemap.xml, but product-sitemap.xml separately listed
+     * '/shop/' again anyway - confirmed live. Root cause: Yoast represents
+     * WooCommerce's product post type ARCHIVE (which the 'shop' page IS)
+     * as its own dedicated sitemap entry, built from
+     * get_post_type_archive_link()/'noindex-ptarchive-product' Yoast
+     * option - a completely separate code path from the per-post
+     * '_yoast_wpseo_meta-robots-noindex' postmeta used for individual
+     * pages/products, so setting that meta on the shop page alone can
+     * never affect this. This is Yoast's own native "don't index this post
+     * type's archive" setting (the same one exposed in Search Appearance ->
+     * Content Types -> Products -> Show Products in search results, set to
+     * No) - using it here instead of a URL-matching sitemap filter is the
+     * root-cause fix, not a workaround.
+     */
+    public static function maybe_noindex_product_archive() {
+        if (!class_exists('WPSEO_Options')) { return; }
+        if (WPSEO_Options::get('noindex-ptarchive-product', false)) { return; }
+        WPSEO_Options::set('noindex-ptarchive-product', true);
+    }
+
+    /**
+     * Phase 8: same problem, one taxonomy level down. Both real products
+     * are filed under WooCommerce's default "Uncategorized" product_cat
+     * term (no real category taxonomy exists on this catalog-only site),
+     * so /product-category/uncategorized/ was publicly reachable serving
+     * WooCommerce's stock English "Coming Soon" placeholder - confirmed
+     * live. That route now redirects (see
+     * mentra_vn_disable_woocommerce_public_routes() in functions.php), but
+     * the term archive was still separately listed in
+     * product_cat-sitemap.xml (a taxonomy-archive sitemap entry, a
+     * different code path than the post-type-archive one
+     * maybe_noindex_product_archive() fixes). This site has no plan for a
+     * public product-category browsing UI at all (catalog-only, no
+     * "shop by category" flow), so noindexing the entire product_cat
+     * taxonomy archive - not just this one term - is the correct, durable
+     * fix, not a one-term patch.
+     */
+    public static function maybe_noindex_product_category_archive() {
+        if (!class_exists('WPSEO_Options')) { return; }
+        if (WPSEO_Options::get('noindex-tax-product_cat', false)) { return; }
+        WPSEO_Options::set('noindex-tax-product_cat', true);
     }
 
     /**
