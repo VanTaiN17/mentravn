@@ -1,18 +1,6 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
-if (!have_posts() || !is_singular('post') || !get_post_meta(get_the_ID(), '_mentra_vn_article', true)) {
-    // Fallback for any post that isn't one of the 16 migrated Mentra
-    // articles (none exist today, but this keeps a working generic
-    // template for any future ad-hoc WordPress Post instead of forcing
-    // the Mentra article chrome onto unrelated content).
-    get_header(); ?>
-<main id="main" class="page-main">
-<?php while (have_posts()): the_post(); ?>
-<section class="page-hero"><div class="container narrow reveal"><p class="eyebrow">TIN TỨC</p><h1><?php the_title(); ?></h1><p><?php echo esc_html(get_the_date('d/m/Y')); ?></p></div></section>
-<section class="section"><article class="container prose reveal"><?php if (has_post_thumbnail()) { the_post_thumbnail('large', ['class' => 'post-cover']); } the_content(); ?></article></section>
-<?php endwhile; ?>
-</main>
-<?php get_footer();
+if (!have_posts() || !is_singular('post')) {
     return;
 }
 
