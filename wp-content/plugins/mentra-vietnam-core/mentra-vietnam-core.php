@@ -761,6 +761,9 @@ final class Mentra_Vietnam_Core_99 {
         if (!$email || !is_email($email)) {
             wp_send_json_error(['message' => 'Email không hợp lệ.'], 400);
         }
+
+        self::enforce_security('newsletter', wp_unslash($_POST['g_recaptcha_response'] ?? ''));
+
         $existing = get_posts([
             'post_type' => 'mentra_subscriber',
             'post_status' => 'any',
@@ -790,10 +793,10 @@ final class Mentra_Vietnam_Core_99 {
      * Shared tail of the form pipeline for every whitelisted form type:
      * compose a server-generated subject (never a client-supplied prefix),
      * send via wp_mail() (the only transport - no SMTP/PHPMailer config
-     * here), and return a standardized JSON response.
-     *
-     * Phase 6 will insert reCAPTCHA verification and rate limiting here,
-     * centrally, before the wp_mail() call - do not add per-handler checks.
+     * here), and return a standardized JSON response. Rate limiting and
+     * reCAPTCHA verification (Phase 6) already ran in the caller via
+     * enforce_security() before this is reached - see contact_ajax(),
+     * career_ajax(), newsletter().
      */
     private static function send_form_mail($type, $subject_line, array $body_lines, $reply_name, $reply_email) {
         if (!isset(self::FORM_TYPES[$type])) {
@@ -854,6 +857,8 @@ final class Mentra_Vietnam_Core_99 {
         }
         $type = self::CONTACT_SUBJECT_MAP[$key];
 
+        self::enforce_security($type, wp_unslash($_POST['g_recaptcha_response'] ?? ''));
+
         $body = [
             'Loại: ' . self::FORM_TYPES[$type],
             'Họ tên: ' . $name,
@@ -901,6 +906,8 @@ final class Mentra_Vietnam_Core_99 {
         if ($why === '' || mb_strlen($why) > 5000) {
             wp_send_json_error(['message' => 'Vui lòng chia sẻ lý do (tối đa 5000 ký tự).'], 400);
         }
+
+        self::enforce_security('career', wp_unslash($_POST['g_recaptcha_response'] ?? ''));
 
         $body = [
             'Họ tên: ' . $name,
