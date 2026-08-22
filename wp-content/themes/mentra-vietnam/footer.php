@@ -1,0 +1,1 @@
+<footer style="padding:50px var(--container-px);background:var(--surface-2);color:var(--ink-secondary)"><div class="site-shell">© <?php echo esc_html(date('Y')); ?> Mentra Vietnam</div></footer><?php wp_footer(); ?></body></html>
