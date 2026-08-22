@@ -1015,53 +1015,104 @@ body{font-optical-sizing:auto}
   color: var(--ink-secondary) !important;
 }
 
-/* Owner final requirement: clean centered STATIC strip, no marquee/scroll
-   animation - no edge-fade gradients either, since those only make sense
-   as a scroll-edge effect and this content is now fully visible at once. */
+/* Owner final requirement: keep the continuous horizontal marquee motion -
+   only the old white-card logo styling was wrong, never the animation.
+   Subtle edge fades so logos entering/leaving the visible strip don't hard-cut. */
 .home-backed-marquee-section .home-backed-marquee-fade {
   position: relative !important;
   width: 100% !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 .home-backed-marquee-section .home-backed-marquee-fade::before,
 .home-backed-marquee-section .home-backed-marquee-fade::after {
-  display: none !important;
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 72px !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::before {
+  left: 0 !important;
+  background: linear-gradient(90deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::after {
+  right: 0 !important;
+  background: linear-gradient(270deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
 }
 
 .home-backed-marquee-section .home-backed-marquee {
   position: relative !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   width: 100% !important;
   mask-image: none !important;
   -webkit-mask-image: none !important;
 }
 
+/* nowrap + max-content lets the track extend past the viewport; the parent's
+   overflow:hidden above clips it, so there is never a page-level horizontal
+   scrollbar. No transform:translateZ(0) - that GPU-layer hack was found to
+   block the animation from ever starting (see commit dccca0d). */
 .home-backed-marquee-section .home-backed-marquee-track {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
   align-items: center !important;
-  width: 100% !important;
-  animation: none !important;
+  width: max-content !important;
+  animation: mentra-marquee 30s linear infinite !important;
   gap: 40px !important;
 }
 
 .home-backed-marquee-section .home-backer-logo-strip {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   width: auto !important;
   padding: 0 !important;
   gap: 40px !important;
 }
 
-/* The duplicate logo strip only existed to make the marquee loop
-   seamlessly - a static strip shows the real logos once, not twice. */
+/* The duplicate strip is the second half of the seamless loop (the track
+   animates by exactly one strip-width via @keyframes mentra-marquee, so the
+   real and duplicate strips must render back-to-back with no visible gap
+   between them). aria-hidden keeps screen readers from announcing the
+   logos twice. */
 .home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
-  display: none !important;
+  display: flex !important;
+}
+
+/* Reduced-motion users get a clean centered, wrapped, non-animated layout
+   instead of frozen mid-scroll content - the duplicate strip is hidden here
+   since a static layout only ever needs to show the logos once. */
+@media (prefers-reduced-motion: reduce) {
+  .home-backed-marquee-section .home-backed-marquee-fade {
+    overflow: visible !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee-fade::before,
+  .home-backed-marquee-section .home-backed-marquee-fade::after {
+    display: none !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee {
+    overflow: visible !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee-track {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    width: 100% !important;
+    animation: none !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-strip {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
+    display: none !important;
+  }
 }
 
 /* Style individual logo items as clean transparent inline elements */
