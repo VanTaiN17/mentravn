@@ -470,6 +470,42 @@
   }
 
 
+  function initCareer(){
+    qsa('form[data-career-form]').forEach(form=>{
+      const submit=qs('.career-submit',form)||qs('button[type="submit"]',form);
+      let status=qs('.career-form-status',form);
+      if(!status){status=document.createElement('p');status.className='career-form-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');form.appendChild(status);}
+      form.addEventListener('submit',async e=>{
+        e.preventDefault();
+        const name=qs('#career-name',form);
+        const email=qs('#career-email',form);
+        const expertise=qs('#career-expertise',form);
+        const position=qs('#career-position',form);
+        const portfolio=qs('#career-portfolio',form);
+        const why=qs('#career-why',form);
+        if(!name||!email||!expertise||!why||!name.value.trim()||!email.checkValidity()||!expertise.value||!why.value.trim()){
+          if(email && !email.checkValidity()) email.reportValidity();
+          else if(expertise && !expertise.value) expertise.reportValidity();
+          else if(why && !why.value.trim()) why.reportValidity();
+          return;
+        }
+        const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
+        status.textContent=''; status.classList.remove('is-error','is-success');
+        try{
+          const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim()});
+          const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
+          const j=await r.json();
+          if(submit) submit.textContent=j.success?'Đã gửi':'Gửi lại';
+          status.textContent=(j&&j.data&&j.data.message)?j.data.message:(j.success?'Đã gửi hồ sơ ứng tuyển.':'Có lỗi xảy ra, vui lòng thử lại.');
+          status.classList.add(j.success?'is-success':'is-error');
+          if(j.success){form.reset();}
+        }catch(_){if(submit)submit.textContent='Gửi lại';status.textContent='Có lỗi xảy ra, vui lòng thử lại.';status.classList.add('is-error');}
+        setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
+      });
+    });
+  }
+
+
   function initHydratedTextFallbacks(){
     const spans=qsa('.mentra-vn-index span[style*="opacity:0"][style*="translateY(20px)"]');
     if(!spans.length) return;
@@ -653,5 +689,5 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initCaptionsFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
+  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initCaptionsFAQ();initRxFAQ();initNewsletter();initContact();initCareer();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
 })();
