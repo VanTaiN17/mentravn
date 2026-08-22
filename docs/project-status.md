@@ -1,8 +1,8 @@
 # Mentra Vietnam — Current Project Status
 
 Last updated: 2026-08-22
-Current stable phase: Phase 5 — Forms Architecture. PASS (not yet pushed — see Git section below).
-Current branch: `feature/forms-architecture` (based on `fix/full-visual-fidelity`, the owner-approved frontend branch).
+Current stable phase: Phase 6 — reCAPTCHA v2 + Anti-Spam Security. PASS (not yet pushed — see Git section below).
+Current branch: `feature/recaptcha-security` (based on `feature/forms-architecture`, Phase 5 PASS).
 Git remote: `origin` = `https://github.com/VanTaiN17/mentravn.git`
 Push status: see Git section below.
 
@@ -32,7 +32,10 @@ Status: PASS (superseded procedurally by owner sign-off below, but the technical
 Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the remaining frontend visual work directly together with Antigravity (a separate coding tool) and explicitly approved the resulting frontend state — this supersedes the earlier "VISUAL VERIFICATION PENDING" status; owner confirmation is authoritative regardless of whether every pixel was independently re-verified by Claude. 20 additional commits on `fix/full-visual-fidelity` (`6f25c70`..`9aa4d5b`), reviewed and kept as-is per instruction not to reopen approved visual work absent a technical breakage. Notable changes: Mentra Live gallery thumbnail switching + layout alignment fixes, Even Realities icon/typography fixes, Socials hover polish, a new `/tai-ung-dung/` (app download) page replacing the old `/get-mentra` → sales-contact redirect with a real download page, MentraOS logo sizing, comparison-page (`/so-sanh/`) FAQ interactivity + price removal from CTAs, captions-page (`/phu-de/`) FAQ content/styling, and several `MENTRA_VN_THEME_VERSION` cache-bumps (final: `3.14.0`). Reviewed for secrets/debug code/hardcoded local paths (none found) and re-validated `php -l`/`node --check` (both clean) before this handoff; a mechanical cleanup commit (`chore: strip stray UTF-8 BOM from static-source HTML files`) was added on top. A subsequent route smoke-test (done during Phase 5, once the local site was back up) confirmed no regression from this pass. **Frontend page-building milestone is now closed.**
 
 ### Phase 5 — Forms Architecture
-Status: PASS. Built the backend for all six business-contact form types (General, Sales, Support, Partnership, Media, Career) plus reviewed Newsletter (unchanged). Unified recipient routing to one configurable option, `mentra_vn_contact_email` (default `contact@domain.vn`, editable at Settings → Mentra Việt Nam), replacing the old `sales_email`/`support_email` split. Added `career_ajax()` — the Career page (`/tuyen-dung/`) previously had no backend at all. Rewrote `contact_ajax()` to whitelist the `#contact-subject` dropdown's fixed values into a form type (rejecting anything unrecognized) instead of the old fragile keyword-matching. Fixed a genuine pre-existing routing bug: `/lien-he/?topic=sales` and `/lien-he/?topic=support` were silently ignoring the query string and always rendering plain `/lien-he/` — now they serve the matching pre-selected static file that already existed on disk unused. Server-generated mail subjects (never client-supplied), CRLF/header-injection hardening on Reply-To, per-field max lengths, no new database/CPT for contact submissions (mail-only, as required). No reCAPTCHA (Phase 6) or SMTP (Phase 7) added. Full six-type test matrix (recipient/subject/body/headers) run against the live local site via a temporary `wp_mail`-intercepting harness (removed after use, not a deliverable). Full detail: `docs/phase-5-report.md`, `docs/forms-inventory.md`. **Not yet pushed to origin** — awaiting explicit push authorization, per phase discipline.
+Status: PASS. Built the backend for all six business-contact form types (General, Sales, Support, Partnership, Media, Career) plus reviewed Newsletter (unchanged). Unified recipient routing to one configurable option, `mentra_vn_contact_email` (default `contact@domain.vn`, editable at Settings → Mentra Việt Nam), replacing the old `sales_email`/`support_email` split. Added `career_ajax()` — the Career page (`/tuyen-dung/`) previously had no backend at all. Rewrote `contact_ajax()` to whitelist the `#contact-subject` dropdown's fixed values into a form type (rejecting anything unrecognized) instead of the old fragile keyword-matching. Fixed a genuine pre-existing routing bug: `/lien-he/?topic=sales` and `/lien-he/?topic=support` were silently ignoring the query string and always rendering plain `/lien-he/` — now they serve the matching pre-selected static file that already existed on disk unused. Server-generated mail subjects (never client-supplied), CRLF/header-injection hardening on Reply-To, per-field max lengths, no new database/CPT for contact submissions (mail-only, as required). Full detail: `docs/phase-5-report.md`, `docs/forms-inventory.md`.
+
+### Phase 6 — reCAPTCHA v2 + Anti-Spam Security
+Status: PASS. Added Google reCAPTCHA v2 Checkbox (never v3/Invisible/Enterprise) to all seven public forms (the six business-contact types + Newsletter), a centralized fail-closed server-side verification pipeline (`enforce_recaptcha()`/`verify_recaptcha_token()`), and WP-transient rate limiting (5 attempts / 10-minute sliding window, per `wp_hash()`-salted client identity + whitelisted form type, no custom DB table, no raw IP ever persisted). New admin-configurable `mentra_vn_recaptcha_site_key`/`mentra_vn_recaptcha_secret_key` options — secret never reaches the frontend. reCAPTCHA is a no-op (forms still work) when unconfigured, with an admin-only warning notice; once configured, every failure mode (missing token, failed/malformed Google response, HTTP transport error) fails closed. The Google script loads only on routes that genuinely render a protected form, confirmed by a real per-page content audit (`mentra_vn_page_has_protected_form()`) — found and correctly excluded `/even-realities/`, `/nha-phat-trien/`, `/trong-kinh/`, whose Newsletter footer form is genuinely absent from their source HTML. Phase 5's recipient/subject/Reply-To hardening/field whitelists are untouched. No SMTP, no new CRM/database, no visual redesign beyond the widget itself. Full test matrix (7 valid-captcha cases, 4 failure modes, rate-limit threshold + type-scoping, security-order, secret-exposure) run live against the local site. Full detail: `docs/phase-6-report.md`, `docs/form-security.md`.
 
 ## Current architecture
 
@@ -51,13 +54,14 @@ Status: PASS. Built the backend for all six business-contact form types (General
 9. **Legacy article URLs**: `/blogs/blog/{slug}/` 301-redirects to the canonical `/tin-tuc/{slug}/`. `templates/source/blogs/blog/*.html` (16 files) and `blogs.html`/`blog.html` are kept on disk as reference/dormant only.
 10. **Forms backend (Phase 5, PASS)**: `wp_ajax_mentra_vn_newsletter` (unchanged), `wp_ajax_mentra_vn_contact_ajax` (General/Sales/Support/Partnership/Media, rewritten), and the new `wp_ajax_mentra_vn_career_ajax` all route through a shared `send_form_mail()` pipeline in the plugin. All nonce-protected (`mentra_vn_public`). See `docs/forms-inventory.md`/`docs/phase-5-report.md`.
 11. **Career form backend exists** (Phase 5) — `/tuyen-dung/` now sends real mail via `mentra_vn_career_ajax`, validated against the form's real fields only.
-12. **reCAPTCHA v2 is still pending** — no bot protection on any form yet (Phase 6 scope; insertion point already marked in `send_form_mail()`).
+12. **reCAPTCHA v2 Checkbox is live** (Phase 6) on all seven public forms, admin-configurable at Settings → Mentra Việt Nam (`mentra_vn_recaptcha_site_key`/`_secret_key`, both currently empty on this install — see `docs/form-security.md` for the no-op-when-unconfigured behavior). Server-side rate limiting (WP transients) is likewise live.
 13. **Business-contact forms all use `contact@domain.vn`** via the single `mentra_vn_contact_email` option (Phase 5) — unified, editable in wp-admin.
 14. **SMTP transport will be WP Mail SMTP** when configured — do not build custom SMTP transport.
 15. **Legal-policy bodies** (Privacy/Terms/Shipping/Refund) still require human Vietnam-specific legal review before content changes; routing/slug fixes are fine.
 16. **`/tai-ung-dung/` app-download page** (added during the owner/Antigravity finishing pass): a new static-source-mirror page (`templates/source/get.html`, source key `get`), replacing the old `/get-mentra` behavior — that legacy path now 301-redirects to `/tai-ung-dung/` instead of to sales contact. No price/cart content.
 17. **Frontend visual page-building milestone is CLOSED**, owner-approved. Any further frontend work should be scoped as a new, deliberate task, not assumed to be still-open Phase 4.x cleanup.
 18. **Forms architecture (Phase 5) is CLOSED, PASS.** `docs/forms-inventory.md` is the field-level reference for every form; `docs/phase-5-report.md` has the full test matrix. `/lien-he/`'s `?topic=` query handling was fixed as part of this phase (see item 10 above and the Phase 5 entry in Completed Phases).
+19. **Anti-spam security (Phase 6) is CLOSED, PASS.** `docs/form-security.md` is the architecture reference (fail-closed rules, rate-limit semantics, privacy/IP handling); `docs/phase-6-report.md` has the full test matrix. Real production reCAPTCHA keys still need to be entered by the owner before protection is actually active in production — see item 12 above.
 
 ## Current important IDs/data
 
@@ -67,6 +71,7 @@ Status: PASS. Built the backend for all six business-contact form types (General
 - Article identity meta: `_mentra_vn_article=1`, `_mentra_vn_legacy_slug`, `_mentra_vn_article_authors` (array of `['name','role','avatar']`).
 - Press data source: `wp-content/themes/mentra-vietnam/data/press.php` — never query `wp_posts` for press content.
 - Contact-form recipient: WordPress option `mentra_vn_contact_email` (default `contact@domain.vn`), editable at Settings → Mentra Việt Nam — always read via `contact_email()` in the plugin, never hardcode the address.
+- reCAPTCHA v2 keys: WordPress options `mentra_vn_recaptcha_site_key` (public) / `mentra_vn_recaptcha_secret_key` (server-only, never expose), both currently empty on this install — editable at Settings → Mentra Việt Nam. Read via `Mentra_Vietnam_Core_99::recaptcha_enabled()`/`recaptcha_site_key()`, or the theme-layer bridge functions `mentra_vn_recaptcha_enabled()`/`mentra_vn_recaptcha_site_key()` — never hardcode or duplicate this check.
 
 ## Current news state (Phase 4 verified)
 
@@ -89,7 +94,7 @@ Status: PASS. Built the backend for all six business-contact form types (General
 
 - ~~Contact form recipient unification to a single `contact@domain.vn`~~ — **DONE** in Phase 5 (`mentra_vn_contact_email` option).
 - ~~Career application form backend~~ — **DONE** in Phase 5 (`mentra_vn_career_ajax`).
-- Google reCAPTCHA v2 + server-side verification (Phase 6 candidate — insertion point already marked in `send_form_mail()`)
+- ~~Google reCAPTCHA v2 + server-side verification~~ — **DONE** in Phase 6 (`enforce_recaptcha()`, fail-closed once configured). Real production keys are still not entered on this install — that's an owner/admin action, not further engineering work.
 - WP Mail SMTP configuration (Phase 7 candidate)
 - Legal content review (Privacy/Terms/Shipping/Refund body text) — includes the "Đổi trả & bảo hành" block on `/mentra-live/`, flagged inline
 - ~~Manual browser visual verification~~ — **DONE.** The owner completed remaining visual work with Antigravity and explicitly approved the frontend. Closed, do not reopen.
@@ -112,7 +117,7 @@ Status: PASS. Built the backend for all six business-contact form types (General
 
 ## Next planned phase
 
-**Phase 6 — reCAPTCHA v2 + server-side verification** (bot protection on the six business-contact forms; insertion point already marked in `send_form_mail()` in the plugin). Then **Phase 7 — WP Mail SMTP configuration**. Phase 5 (Forms Architecture) is complete/PASS but its branch (`feature/forms-architecture`) has not yet been pushed to origin.
+**Phase 7 — WP Mail SMTP configuration** (actual transport reliability; `wp_mail()`'s return value has only ever meant "WordPress accepted the operation," never "delivered"). Phases 5 and 6 (Forms Architecture, Anti-Spam Security) are complete/PASS but neither branch (`feature/forms-architecture`, `feature/recaptcha-security`) has been pushed to origin yet.
 
 **DO NOT START WITHOUT USER/PROJECT-MANAGER INSTRUCTION.**
 
@@ -120,8 +125,8 @@ Status: PASS. Built the backend for all six business-contact form types (General
 
 1. `CLAUDE.md`
 2. `docs/project-status.md` (this file)
-3. `docs/phase-5-report.md` (latest phase report)
-4. `docs/forms-inventory.md` (field-level reference for every form, needed before touching Phase 6/7)
+3. `docs/phase-6-report.md` (latest phase report)
+4. `docs/form-security.md` (anti-spam architecture reference), `docs/forms-inventory.md` (field-level reference for every form) — needed before touching Phase 7
 5. `docs/phase-4.6-report.md`, `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md` (historical reference only — frontend milestone is closed, do not treat their "pending" language as current)
 6. The relevant specialized document for whatever phase is being started next (e.g. `docs/route-map.csv` for routing, `docs/news-migration-manifest.md` for further news work)
 
