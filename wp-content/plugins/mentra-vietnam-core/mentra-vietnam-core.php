@@ -92,6 +92,7 @@ final class Mentra_Vietnam_Core_99 {
         add_action('init', [__CLASS__, 'maybe_create_infinity_cable_product'], 25);
         add_action('init', [__CLASS__, 'maybe_create_news_category'], 26);
         add_action('init', [__CLASS__, 'maybe_import_mentra_articles'], 30);
+        add_filter('use_block_editor_for_post_type', [__CLASS__, 'use_classic_editor_for_news_posts'], 10, 2);
         add_action('admin_menu', [__CLASS__, 'admin_menu']);
         add_action('admin_init', [__CLASS__, 'register_settings']);
         add_action('admin_notices', [__CLASS__, 'recaptcha_admin_notice']);
@@ -714,6 +715,25 @@ final class Mentra_Vietnam_Core_99 {
         update_post_meta($attachment_id, '_mentra_vn_source_asset', $relative_path);
 
         return $attachment_id;
+    }
+
+    /**
+     * Owner request: the News/article editing screen (post_type=post) should
+     * use WordPress's traditional Classic Editor UI (TinyMCE, Title field,
+     * Add Media, Visual/Text tabs, meta-box sidebar) instead of the block
+     * editor - admin-only, no public frontend effect. WordPress core has
+     * kept the pre-block-editor edit screen fully maintained specifically
+     * for this filter since the block editor merged, so no separate Classic
+     * Editor plugin dependency is needed (confirmed none is installed on
+     * this site). Scoped to exactly $post_type === 'post' - Pages,
+     * WooCommerce Products, and any other post type are untouched and keep
+     * whatever editor they already use.
+     */
+    public static function use_classic_editor_for_news_posts($use_block_editor, $post_type) {
+        if ($post_type === 'post') {
+            return false;
+        }
+        return $use_block_editor;
     }
 
     public static function admin_menu() {
