@@ -98,10 +98,171 @@ img,svg,video{max-width:100%}
 .site-header.is-scrolled .lg\:hidden button span,.site-header--filled .lg\:hidden button span{background-color:var(--ink-primary)!important}
 .desktop-nav-zone{isolation:isolate}
 .desktop-nav-trigger{white-space:nowrap}
-.mentra-mobile-menu{position:fixed;inset:0;z-index:49;display:flex;flex-direction:column;background:var(--surface-0);padding:calc(var(--height-nav) + 44px) var(--container-px) 40px;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px);transition:opacity .22s ease,transform .22s ease,visibility .22s}
-.mentra-mobile-menu.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:none}
-.mentra-mobile-menu a{display:flex;align-items:center;justify-content:space-between;min-height:58px;border-bottom:1px solid var(--border-subtle);font-family:var(--font-display);font-size:27px;font-weight:600;letter-spacing:-.025em}
-.mentra-mobile-menu .mobile-menu-small{font-size:15px;min-height:48px;font-weight:500;color:var(--ink-secondary)}
+.mentra-mobile-menu {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100 !important;
+  display: flex !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), visibility 300ms !important;
+}
+.mentra-mobile-menu.is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+.mentra-mobile-menu-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.mentra-mobile-menu-drawer {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 85% !important;
+  max-width: 360px !important;
+  background-color: var(--surface-0) !important;
+  transform: translateX(-100%) !important;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms !important;
+  box-shadow: none !important;
+}
+.mentra-mobile-menu.is-open .mentra-mobile-menu-drawer {
+  transform: translateX(0) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.mentra-mobile-menu-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  padding-left: var(--container-px) !important;
+  padding-right: var(--container-px) !important;
+  padding-top: max(14px, env(safe-area-inset-top, 14px)) !important;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+}
+.mentra-mobile-menu-header {
+  display: flex !important;
+  align-items: center !important;
+  min-height: var(--height-nav) !important;
+  flex-shrink: 0 !important;
+}
+.mentra-mobile-menu-close {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 9999px !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease !important;
+  color: var(--brand) !important;
+}
+.mentra-mobile-menu-close:hover {
+  background-color: var(--surface-2) !important;
+}
+.mentra-mobile-menu-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding-bottom: 24px !important;
+  margin-top: 14px !important;
+}
+.mentra-mobile-menu-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+.mentra-mobile-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--ink-primary) !important;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  text-decoration: none !important;
+}
+.mentra-mobile-menu-group {
+  display: flex !important;
+  flex-direction: column !important;
+}
+.mentra-mobile-menu-trigger {
+  display: flex !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--ink-primary) !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  text-align: left !important;
+}
+.mentra-mobile-menu-arrow {
+  transition: transform 200ms ease !important;
+  color: var(--ink-secondary) !important;
+}
+.mentra-mobile-menu-trigger[aria-expanded="true"] .mentra-mobile-menu-arrow {
+  transform: rotate(180deg) !important;
+}
+.mentra-mobile-menu-sub {
+  display: flex !important;
+  flex-direction: column !important;
+  padding-left: 14px !important;
+  border-left: 1px solid var(--border-subtle) !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  gap: 4px !important;
+}
+.mentra-mobile-menu-sub a {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 36px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: var(--ink-secondary) !important;
+  text-decoration: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+.mentra-mobile-menu-sub a:hover {
+  color: var(--brand-text) !important;
+}
+.mentra-mobile-menu-sub a.external-link {
+  justify-content: flex-start !important;
+  gap: 6px !important;
+}
+.mentra-mobile-menu-sub a .external-arrow {
+  opacity: 0.6 !important;
+}
+.mentra-mobile-menu-label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--ink-tertiary) !important;
+  padding-top: 12px !important;
+  padding-bottom: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+.mentra-mobile-menu-footer {
+  flex-shrink: 0 !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  padding-top: 12px !important;
+  background-color: var(--surface-0) !important;
+}
 body.mentra-menu-open{overflow:hidden}
 
 /* Home hero */

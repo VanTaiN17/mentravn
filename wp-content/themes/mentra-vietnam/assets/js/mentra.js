@@ -22,21 +22,116 @@
       menu.className='mentra-mobile-menu';
       menu.setAttribute('aria-hidden','true');
       menu.innerHTML=`
-        <a href="${MENTRA_VN.home}mentra-os/">MentraOS <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}mentra-live/">Kính Mentra Live <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}ung-dung/">Ứng dụng <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}nha-phat-trien/">Nhà phát triển <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}ve-mentra/">Về Mentra <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}ho-tro/">Hỗ trợ <span aria-hidden="true">→</span></a>
-        <a class="mobile-menu-small" href="${MENTRA_VN.home}lien-he/">Liên hệ</a>
-        <a class="mobile-menu-small" href="${MENTRA_VN.home}tin-tuc/">Tin tức</a>`;
+        <div class="mentra-mobile-menu-overlay"></div>
+        <div class="mentra-mobile-menu-drawer">
+          <div class="mentra-mobile-menu-inner">
+            <div class="mentra-mobile-menu-header">
+              <button class="mentra-mobile-menu-close" aria-label="Đóng menu">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5 5l10 10M15 5L5 15" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="mentra-mobile-menu-body">
+              <nav class="mentra-mobile-menu-nav" aria-label="Điều hướng menu di động">
+                <a href="${MENTRA_VN.home}" class="mentra-mobile-menu-item">Trang chủ</a>
+                
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>OS</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <a href="${MENTRA_VN.home}mentra-os/">MentraOS</a>
+                    <a href="${MENTRA_VN.home}tai-ung-dung/">Tải ứng dụng</a>
+                    <a href="https://console.mentraglass.com/" target="_blank" rel="noopener noreferrer" class="external-link"><span>Cổng nhà phát triển</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                    <a href="https://github.com/Mentra-Community/MentraOS" target="_blank" rel="noopener noreferrer" class="external-link"><span>GitHub</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                  </div>
+                </div>
+
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>Kính</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <div class="mentra-mobile-menu-label">Sản phẩm</div>
+                    <a href="${MENTRA_VN.home}mentra-live/">Kính Mentra Live</a>
+                    <div class="mentra-mobile-menu-label">Phụ kiện</div>
+                    <a href="${MENTRA_VN.home}prescriptions/">Tròng kính theo độ</a>
+                    <a href="${MENTRA_VN.home}products/mentra-live-charging-cable/">Cáp sạc Infinity</a>
+                    <div class="mentra-mobile-menu-label">Kính được hỗ trợ</div>
+                    <a href="${MENTRA_VN.home}even-realities/">Even Realities G1 & G2</a>
+                    <a href="${MENTRA_VN.home}nimo/">NIMO</a>
+                  </div>
+                </div>
+
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>Nhà phát triển</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <a href="${MENTRA_VN.home}nha-phat-trien/">Nhà phát triển</a>
+                    <a href="https://console.mentraglass.com/" target="_blank" rel="noopener noreferrer" class="external-link"><span>Bảng điều khiển</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                    <a href="https://docs.mentraglass.com/" target="_blank" rel="noopener noreferrer" class="external-link"><span>Tài liệu hướng dẫn</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                    <a href="https://github.com/Mentra-Community/MentraOS" target="_blank" rel="noopener noreferrer" class="external-link"><span>GitHub</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                  </div>
+                </div>
+
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>Công ty</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <a href="${MENTRA_VN.home}ve-mentra/">Về Mentra</a>
+                    <a href="${MENTRA_VN.home}tin-tuc/">Phòng tin tức</a>
+                    <a href="${MENTRA_VN.home}tin-tuc/">Blog</a>
+                    <a href="${MENTRA_VN.home}tuyen-dung/">Tuyển dụng</a>
+                    <a href="${MENTRA_VN.home}mang-xa-hoi/">Mạng xã hội</a>
+                    <a href="${MENTRA_VN.home}discord/">Discord</a>
+                    <a href="${MENTRA_VN.home}lien-he/">Liên hệ</a>
+                  </div>
+                </div>
+              </nav>
+            </div>
+            <div class="mentra-mobile-menu-footer">
+              <a href="${MENTRA_VN.home}mentra-live/" class="btn-base btn-primary w-full text-center">Đặt mua Mentra Live</a>
+            </div>
+          </div>
+        </div>`;
       document.body.appendChild(menu);
-      const close=()=>{menu.classList.remove('is-open');menu.setAttribute('aria-hidden','true');mobileButton.setAttribute('aria-expanded','false');document.body.classList.remove('mentra-menu-open');};
+      const close=()=>{
+        menu.classList.remove('is-open');
+        menu.setAttribute('aria-hidden','true');
+        mobileButton.setAttribute('aria-expanded','false');
+        document.body.classList.remove('mentra-menu-open');
+      };
       mobileButton.setAttribute('aria-expanded','false');
       mobileButton.addEventListener('click',()=>{
         const open=!menu.classList.contains('is-open');
-        menu.classList.toggle('is-open',open);menu.setAttribute('aria-hidden',String(!open));mobileButton.setAttribute('aria-expanded',String(open));document.body.classList.toggle('mentra-menu-open',open);
-        qsa('span',mobileButton).forEach((s,i)=>{ if(open){s.style.backgroundColor='var(--ink-primary)'; if(i===0){s.style.transform='translateY(7px) rotate(45deg)'} if(i===1){s.style.opacity='0'} if(i===2){s.style.width='100%';s.style.transform='translateY(-7px) rotate(-45deg)'}} else {s.style.transform='';s.style.opacity='';s.style.width='';} });
+        if(open){
+          menu.classList.add('is-open');
+          menu.setAttribute('aria-hidden','false');
+          mobileButton.setAttribute('aria-expanded','true');
+          document.body.classList.add('mentra-menu-open');
+        }else{
+          close();
+        }
+      });
+      const closeBtn=qs('.mentra-mobile-menu-close',menu);
+      const overlay=qs('.mentra-mobile-menu-overlay',menu);
+      if(closeBtn) closeBtn.addEventListener('click',close);
+      if(overlay) overlay.addEventListener('click',close);
+      qsa('.mentra-mobile-menu-trigger',menu).forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const group=btn.closest('.mentra-mobile-menu-group');
+          const sub=qs('.mentra-mobile-menu-sub',group);
+          const open=btn.getAttribute('aria-expanded')==='true';
+          btn.setAttribute('aria-expanded',String(!open));
+          if(sub) sub.style.display=open?'none':'flex';
+        });
       });
       menu.addEventListener('click',e=>{if(e.target.closest('a')) close();});
       window.addEventListener('keydown',e=>{if(e.key==='Escape') close();});
