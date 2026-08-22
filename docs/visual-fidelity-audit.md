@@ -73,3 +73,45 @@ Verified live (curl against rendered HTML) that every public page — not just M
 ## Reveal system audit (task section 13)
 
 Compared initial opacity/transform/duration/easing/threshold/stagger against the source: the CSS/JS system itself (`[data-mentra-reveal]`, `.is-visible`, `initReveal()`) was already correctly built and matches the source's intent exactly (opacity 0→1, translateY(18px)→0, 0.65s cubic-bezier ease, IntersectionObserver threshold 0.08). The only defect was the inline-style specificity conflict described above (now fixed with `!important`), plus the two rebuilt pages using the disconnected `class="reveal"` convention instead of `data-mentra-reveal` (now fixed by rewriting both templates to use the real attribute).
+
+---
+
+# Phase 4.6 addendum — full visual fidelity correction
+
+Date: 2026-08-21. Trigger: the owner visually inspected the local site in a real browser after Phase 4.5 and confirmed it had **not** actually fixed the reported problems. This addendum documents the corrected root-cause analysis; it supersedes the corresponding Phase 4.5 findings where they conflict (Phase 4.5's CSS approximations for Mentra Live/MentraOS were guesses, not verified reproductions).
+
+## Re-audit method: two additional sources of truth
+
+Per the phase instructions, this pass used the **current public production site** (`https://mentraglass.com/`) as a second source of truth alongside the immutable WGET capture, because the WGET capture is confirmed stale/incomplete for at least one route (Infinity Cable's product page did not exist at capture time). Specifically:
+
+1. Downloaded the current public site's compiled CSS bundle directly (`https://mentraglass.com/live`'s single `<link rel="stylesheet">`, a Tailwind-based bundle at `cdn.shopify.com/oxygen-v2/.../app-*.css`, ~338KB) to a local scratch file and grepped it for the exact real rules of every classname in question — not hotlinked, not embedded in any shipped page, used only as a one-time reference during this session.
+2. Downloaded current public HTML for `/live`, `/even-realities`, `/socials`, `/os`, and `/products/mentra-live-charging-cable` to a local scratch directory for structural/content reference (the last of these has no WGET equivalent at all).
+3. Cross-checked every WGET source page for **embedded `<style>` blocks** (`grep -c "<style"`) — a previously-unexamined signal. Found 10 pages with one: `OS.html`, `blog.html`, `blogs.html`, `captions.html`, `careers.html`, `discord.html`, `even-realities.html`, `index.html`, `privacy.html`, `socials.html`. This directly explained Even Realities' failure (see below) and surfaced a second, already-fixed-in-an-earlier-phase instance (Careers).
+
+## Root cause 1 (Mentra Live, MentraOS): Phase 4.5's CSS was a plausible-looking guess, not a reproduction
+
+Phase 4.5 rebuilt both pages' DOM structurally correctly, but hand-authored the CSS for `.product-detail-*` and `.green-grid-promo`/`.os-download-promo*` by inference from context (padding/sizing values estimated to "look reasonable"), not from any real source. Compared against the real compiled `app.css`:
+
+- `.product-detail-grid` was guessed as `display:grid;gap:40px` with a flat `1.05fr .95fr` desktop split. Real: `grid-template-columns:1fr` (mobile) → `minmax(0,1fr) minmax(0,1fr)` (48em–64em) → `minmax(0,1.1fr) minmax(25rem,.9fr)` (64em+) → `minmax(0,1.05fr) minmax(27rem,.86fr)` (96em+), each with its own gap formula. The guessed version had no 48em/96em breakpoints at all and no `minmax()` floor on the summary column, which is exactly the kind of gap that produces "squeezed left, wrong proportions" at real desktop widths.
+- `.product-detail-media-card` was guessed as `aspect-ratio:1/1`. Real: `height:max(280px,min(54vw,440px))` (viewport-relative clamp, not a fixed aspect ratio) — a materially different sizing model.
+- `.product-detail-summary` was guessed with no `max-width`, so it would stretch to fill its full grid track. Real: `max-width:32.5rem` (520px) at every breakpoint except the 48–64em tablet band.
+- `.product-detail-thumbnails` was guessed as a `grid-template-columns:repeat(6,1fr)`. Real: `display:flex;overflow-x:auto` (a scrollable row, not a fixed 6-column grid) with fixed `5.25rem × 4.5rem` thumb sizing.
+- `.green-grid-promo`/`.os-download-promo*` (MentraOS's download-promo banner) had **zero rule anywhere in the theme** in Phase 4.5, so this whole block was invented from scratch — guessed as a dark near-black gradient, centered/stacked layout. Real: a green radial+linear gradient (`#55b974` → `#25825f` → `#0d4d43`), a dot-grid overlay at `64px 64px`, and a two-column grid (`minmax(0,.9fr) minmax(320px,1fr)`) with the actions column right-aligned.
+
+**Fix**: replaced every guessed value with the real extracted CSS (see the two commits `fix: restore Mentra Live desktop composition and layout` and `fix: restore MentraOS download-promo and responsive layout`). `.product-detail-*` was also un-scoped from the page-specific body class, since it's confirmed to be the site's real *shared* product-page template (verified identical on the new Infinity Cable page) — a rule already existed unscoped for `.product-detail-thumb` since Phase 3, so page-scoping it in Phase 4.5 had actually fragmented an intentionally shared component.
+
+## Root cause 2 (Even Realities): a page-unique embedded `<style>` block was never ported
+
+Unlike Mentra Live/MentraOS, `even-realities.html`'s real markup (rendered via the static-source mirror, `mentra_vn_render_source('even-realities')`) already used entirely correct, real classnames — but they belong to a page-unique BEM component system (`.even-hero-grid`, `.even-glasses-grid`, `.even-app-feature`, `.even-setup-list`, `.even-g2-grid`, `.even-final`, ~40 classes total) that has **zero rules anywhere** in `mentra.css`/`utilities.css`. On the real site this CSS is not part of the shared compiled bundle at all — it lives in a `<style>` block embedded directly in `even-realities.html` itself (confirmed: `live.html`/`OS.html` have no embedded style block; one-off marketing-page compositions like `index.html`/`even-realities.html`/`careers.html` do). Whatever process built `mentra.css`/`utilities.css` evidently scanned the shared compiled bundle and/or ran Tailwind's JIT scanner across the HTML content, but never extracted page-embedded `<style>` blocks — so this component was invisible to it, even though the page's own markup was 100% correct.
+
+**Fix**: extracted the complete embedded `<style>` block verbatim from `WGET_REFERENCE/even-realities.html` (509 lines, values unchanged), ported into `mentra.css` scoped under `.mentra-vn-even-realities` (the page's own body class).
+
+**Same pattern checked everywhere else**: every WGET page with an embedded `<style>` block was individually inspected. `careers.html` has an equivalent ~10KB block — but direct inspection of `mentra.css` confirmed it was **already fully ported** in an earlier phase (a first coverage-heuristic pass falsely flagged it as missing, due to a `grep -c` line-count-vs-occurrence-count artifact; verified directly against the file before concluding no action was needed — see `docs/full-visual-route-audit.md`). `captions.html`/`discord.html`/`OS.html`/`socials.html`/`index.html` have only decorative keyframe animations plus (captions.html only) one small unported non-layout typography rule, flagged as low-priority debt.
+
+## Root cause 3 (Socials hover): confirmed JS-driven, not CSS-driven
+
+Diffed the platform-card markup against a freshly-downloaded copy of the current public `/socials` page: no `:hover`/`group-hover:` Tailwind variant class exists anywhere on the card, the accent-bar, the icon box, the title, or the arrow. The real interaction is implemented via React mouse-event handlers mutating inline styles directly — there is no CSS rule to "find and port" for this one. Reproduced with `initSocialPlatformHover()` in `mentra.js` (vanilla JS, `mouseenter`/`mouseleave`/`focus`/`blur`), reading each card's own platform color from its existing accent-bar inline style rather than hardcoding a color table — the source markup's own Tailwind transition-utility classes (`transition-all duration-300` etc., already present pre-Phase-4.6) provide the smooth animation with no new CSS required.
+
+## Root cause 4 (Infinity Cable): a real product page was misclassified as an anchor
+
+Not a CSS root cause — a data/architecture correction. See `docs/owner-visual-bugs.md` VIS-003 and `docs/product-classification.md`'s Phase 4.6 addendum for the full writeup.

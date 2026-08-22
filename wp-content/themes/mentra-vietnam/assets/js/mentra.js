@@ -55,7 +55,7 @@
         groups:[
           {title:'NỀN TẢNG',links:[
             ['MentraOS','mentra-os/'],
-            ['Tải ứng dụng','https://mentraglass.com/get-mentra'],
+            ['Tải ứng dụng','tai-ung-dung/'],
             ['Cổng nhà phát triển','https://console.mentraglass.com',true],
             ['GitHub','https://github.com/Mentra-Community/MentraOS',true]
           ]}
@@ -67,7 +67,7 @@
           {title:'SẢN PHẨM',links:[['Mentra Live','mentra-live/']]},
           {title:'PHỤ KIỆN',links:[
             ['Tròng kính theo độ','trong-kinh/'],
-            ['Infinity Cable','mentra-live/#charging']
+            ['Infinity Cable','products/mentra-live-charging-cable/']
           ]},
           {title:'KÍNH ĐƯỢC HỖ TRỢ',links:[
             ['Even Realities G1 & G2','even-realities/'],
@@ -254,7 +254,7 @@
   }
 
   function initFAQ(){
-    const faqRoot=qs('.home-faq-section');
+    const faqRoot=qs('.home-faq-section:not(.captions-home-faq)');
     if(!faqRoot) return;
 
     const data={
@@ -287,6 +287,23 @@
         ['Hộp sạc có được hỗ trợ không?','Mentra Live hỗ trợ hộp sạc 2.200 mAh và cáp sạc khi đang đeo cho các phiên sử dụng dài.'],
         ['Có tròng kính theo độ không?','Có. Mentra Live được thiết kế để hỗ trợ giải pháp tròng kính theo độ; xem trang Tròng kính để biết thêm chi tiết.'],
         ['Tôi cần báo giá cho doanh nghiệp thì làm thế nào?','Với nhu cầu số lượng lớn hoặc triển khai doanh nghiệp, hãy sử dụng biểu mẫu Liên hệ kinh doanh để nhận tư vấn phù hợp.']
+      ],
+      'comparison':[
+        ['Kính thông minh nào tốt nhất năm 2026?','Lựa chọn tốt nhất phụ thuộc nhu cầu. Với phát triển mã nguồn mở, quyền riêng tư và thời lượng pin cả ngày, Mentra Live là lựa chọn nổi bật. Với người dùng gắn chặt hệ sinh thái Meta, Meta Ray-Ban có lợi thế tích hợp Facebook/Instagram.'],
+        ['Mentra Live so với Meta Ray-Ban như thế nào?','Mentra Live cung cấp thời lượng pin hơn 12 giờ so với 8 giờ của Meta, trọng lượng nhẹ hơn chỉ 43g so với 54g, sở hữu kho ứng dụng Miniapp Store đầy đủ, SDK mã nguồn mở và tôn trọng quyền riêng tư của bạn. Cả hai đều có giá khởi điểm từ , nhưng Mentra đem lại cho bạn nhiều tự do và tính năng hơn.'],
+        ['Kính thông minh nào có thời lượng pin tốt nhất?','Mentra Live cung cấp thời lượng pin hơn 12 giờ kèm theo hộp sạc 2200mAh, so với 8 giờ của Meta Ray-Ban. Mentra cũng hỗ trợ cáp pin cấp nguồn liên tục cho việc livestream rảnh tay không giới hạn.'],
+        ['Kính thông minh có đáng mua không?','Kính thông minh hoàn toàn đáng giá đối với nhà sáng tạo nội dung, nhà phát triển và bất kỳ ai muốn sử dụng trợ lý AI rảnh tay. Những người phát trực tiếp đặc biệt hưởng lợi từ góc nhìn thứ nhất (POV) trực tiếp lên YouTube và Twitch với Mentra Live.']
+      ],
+      'features':[
+        ['Tôi có thể phát triển ứng dụng cho kính thông minh không?','Chỉ có Mentra cung cấp SDK hoàn toàn mã nguồn mở để xây dựng các ứng dụng kính thông minh. Với MentraOS, bạn có thể tạo ứng dụng bằng TypeScript hoạt động trên nhiều nền tảng kính, bao gồm Mentra Live, Even Realities và Vuzix.'],
+        ['Tôi có thể phát trực tiếp (livestream) đến những nền tảng nào?','Mentra Live hỗ trợ phát trực tiếp đến bất kỳ máy chủ RTMP nào — bao gồm YouTube, Twitch, X, TikTok, Instagram và nhiều nền tảng khác. Trong khi đó, Meta Ray-Ban bị giới hạn chỉ cho phép phát lên Facebook và Instagram.'],
+        ['Những trợ lý AI nào được hỗ trợ?','Mentra Live tương thích và hoạt động tốt với ChatGPT, Claude cũng như các mô hình AI tùy chỉnh khác. Meta Ray-Ban chỉ hoạt động độc quyền với Meta AI. Với Mentra, sự lựa chọn AI là của bạn.'],
+        ['Kính thông minh có dùng được với tròng kính cận/viễn/loạn không?','Có, cả Mentra Live và Meta Ray-Ban đều hỗ trợ tròng kính theo độ. Với Mentra, bạn có thể đặt mua phiên bản hỗ trợ lắp tròng kính cận hoặc mang gọng kính đến các cửa hàng kính mắt địa phương để lắp tròng phù hợp.']
+      ],
+      'privacy-&-open-source':[
+        ['Mentra Live có riêng tư không?','Mentra xử lý dữ liệu hoàn toàn cục bộ trên thiết bị của bạn và cam kết không bán dữ liệu người dùng. Mô hình kinh doanh của Meta được xây dựng trên việc thu thập dữ liệu và quảng cáo. Với Mentra, dữ liệu của bạn nằm trọn trong tay bạn.'],
+        ['Mã nguồn mở có ý nghĩa gì đối với kính thông minh?','MentraOS hoàn toàn mã nguồn mở dưới giấy phép MIT. Điều này có nghĩa là bất kỳ ai cũng có thể kiểm tra, sửa đổi và phân phối mã nguồn. Bạn hoàn toàn làm chủ trải nghiệm của mình — không bị khóa phần cứng, không có hệ sinh thái đóng.'],
+        ['Tôi có thể tự xây dựng ứng dụng riêng cho Mentra Live không?','Chắc chắn rồi. MentraOS và bộ SDK hoàn toàn mở. Các nhà phát triển có thể tự do xây dựng các ứng dụng bằng TypeScript hoạt động đồng bộ trên mọi thiết bị kính thông minh được hỗ trợ.']
       ]
     };
 
@@ -296,7 +313,7 @@
 
     const slugFor=(tab)=>{
       const id=tab.id||'';
-      return id.replace(/^home-faq-tab-/,'').toLowerCase();
+      return id.replace(/^faq-tab-/,'').replace(/^home-faq-tab-/,'').toLowerCase();
     };
     const render=(tab)=>{
       const slug=slugFor(tab);
@@ -341,9 +358,40 @@
     });
 
     const selected=tabs.find(t=>t.getAttribute('aria-selected')==='true')||tabs[0];
+    if(selected) selected.classList.add('is-active');
     render(selected);
   }
 
+  function initCaptionsFAQ(){
+    const root = qs('.captions-home-faq');
+    if (!root) return;
+    const items = qsa('.home-faq-item', root);
+    items.forEach(item => {
+      const btn = qs('.home-faq-question', item);
+      const toggle = qs('.home-faq-toggle', item);
+      if (!btn) return;
+      
+      btn.addEventListener('click', () => {
+        const isOpen = item.classList.contains('is-open');
+        
+        // Close all items
+        items.forEach(other => {
+          other.classList.remove('is-open');
+          const otherBtn = qs('.home-faq-question', other);
+          const otherToggle = qs('.home-faq-toggle', other);
+          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+          if (otherToggle) otherToggle.textContent = '+';
+        });
+        
+        // If it was not open, open it
+        if (!isOpen) {
+          item.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+          if (toggle) toggle.textContent = '−';
+        }
+      });
+    });
+  }
 
   function initRxFAQ(){
     qsa('.rx-faq').forEach(root=>{
@@ -444,6 +492,54 @@
   }
 
 
+
+  function initSocialPlatformHover(){
+    // Phase 4.6: the real site drives each platform card's hover state via
+    // React mouse handlers, not a CSS :hover/group-hover rule - confirmed by
+    // diffing the static capture (no hover-variant classes anywhere on the
+    // card markup). Reproduced here with the same technique: each card
+    // already carries its own platform brand color inline (the accent-bar
+    // div's background-color), so this reads that color from the DOM at
+    // runtime instead of hardcoding a per-platform color table - works for
+    // all 8 cards (X, YouTube, Instagram, Discord, Reddit, LinkedIn,
+    // Facebook, TikTok) without guessing brand colors.
+    if(!document.body.classList.contains('mentra-vn-socials')) return;
+    qsa('a.group.relative.rounded-2xl').forEach(card=>{
+      const accent=card.querySelector(':scope > div');
+      if(!accent) return;
+      const style=accent.getAttribute('style')||'';
+      if(!/scaleX/.test(style)) return;
+      const color=accent.style.backgroundColor;
+      if(!color) return;
+      const iconBox=card.querySelector('.flex.items-center.gap-4 > div');
+      const iconBaseBg=iconBox?iconBox.style.backgroundColor:'';
+      const rgb=color.match(/\d+/g);
+      const borderColorHover=rgb?`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.18)`:color;
+      const bgCardHover=rgb?`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.02)`:color;
+      const shadowCardHover=rgb?`0 12px 32px rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.08), 0 4px 12px rgba(0,0,0,0.04)`:'0 1px 3px rgba(0,0,0,0.04)';
+      const title=card.querySelector('h3');
+      const arrow=card.querySelector('.flex.items-center.gap-4 > svg');
+      const set=(on)=>{
+        card.style.transform=on?'translateY(-4px)':'translateY(0)';
+        card.style.boxShadow=on?shadowCardHover:'0 1px 3px rgba(0,0,0,0.04)';
+        card.style.borderColor=on?borderColorHover:'var(--border-subtle)';
+        card.style.backgroundColor=on?bgCardHover:'var(--surface-0)';
+        accent.style.opacity=on?'1':'0';
+        accent.style.transform=on?'scaleX(1)':'scaleX(0.3)';
+        if(iconBox) {
+          iconBox.style.backgroundColor=on?color:iconBaseBg;
+          iconBox.style.color=on?'#ffffff':color;
+        }
+        if(title) title.style.color=on?color:'var(--ink-primary)';
+        if(arrow){arrow.style.color=on?color:'var(--ink-disabled)';arrow.style.transform=on?'translateX(4px)':'translateX(0)';}
+      };
+      card.addEventListener('mouseenter',()=>set(true));
+      card.addEventListener('mouseleave',()=>set(false));
+      card.addEventListener('focus',()=>set(true));
+      card.addEventListener('blur',()=>set(false));
+    });
+  }
+
   function initPdpAccordion(){
     qsa('.pdp-accordion-item').forEach(item=>{
       const trigger=qs('.pdp-accordion-trigger',item);
@@ -524,5 +620,38 @@
     apply();
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();});
+  function initProductGallery(){
+    const galleries=qsa('.product-detail-grid');
+    if(!galleries.length) return;
+    
+    galleries.forEach(gallery=>{
+      const mainImg=qs('.product-detail-media-image', gallery);
+      const thumbs=qsa('.product-detail-thumb', gallery);
+      if(!mainImg||!thumbs.length) return;
+      
+      thumbs.forEach((thumb)=>{
+        const isActive=thumb.classList.contains('is-active');
+        thumb.setAttribute('aria-pressed',isActive?'true':'false');
+        
+        thumb.addEventListener('click',()=>{
+          const thumbImg=qs('.product-detail-thumb-image', thumb);
+          if(!thumbImg) return;
+          
+          mainImg.src=thumbImg.src;
+          mainImg.removeAttribute('srcset');
+          mainImg.removeAttribute('sizes');
+          if(thumbImg.alt) mainImg.alt=thumbImg.alt;
+          
+          thumbs.forEach(t=>{
+            t.classList.remove('is-active');
+            t.setAttribute('aria-pressed','false');
+          });
+          thumb.classList.add('is-active');
+          thumb.setAttribute('aria-pressed','true');
+        });
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initCaptionsFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
 })();

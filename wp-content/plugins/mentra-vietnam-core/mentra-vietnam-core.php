@@ -15,6 +15,7 @@ final class Mentra_Vietnam_Core_99 {
         add_action('init', [__CLASS__, 'register_subscriber_cpt']);
         add_action('init', [__CLASS__, 'maybe_create_pages'], 20);
         add_action('init', [__CLASS__, 'maybe_create_mentra_live_product'], 25);
+        add_action('init', [__CLASS__, 'maybe_create_infinity_cable_product'], 25);
         add_action('init', [__CLASS__, 'maybe_create_news_category'], 26);
         add_action('init', [__CLASS__, 'maybe_import_mentra_articles'], 30);
         add_action('admin_menu', [__CLASS__, 'admin_menu']);
@@ -85,6 +86,12 @@ final class Mentra_Vietnam_Core_99 {
             'Even Realities' => 'even-realities',
             'Discord' => 'discord',
             'Legacy MentraOS' => 'legacy',
+            // Phase 4.6: real Shopify product page (gid://shopify/Product/9286483280124,
+            // handle mentra-live-charging-cable), not an anchor/section inside Mentra
+            // Live - see docs/product-classification.md. Rendered by
+            // page-mentra-live-charging-cable.php; canonical URL is rewritten to
+            // /products/mentra-live-charging-cable/ (see functions.php).
+            'Infinity Cable cho Mentra Live' => 'mentra-live-charging-cable',
         ];
         // Deliberately excludes 'quyen-rieng-tu' (maps to the anomalous
         // 'privacy' source key, which is byte-identical to the homepage in
@@ -101,9 +108,12 @@ final class Mentra_Vietnam_Core_99 {
      * slugs), so this is safe to trigger repeatedly.
      */
     public static function maybe_create_pages() {
-        if (get_option('mentra_vn_pages_synced_v2')) { return; }
+        // Bumped to v3 for Phase 4.6's new Infinity Cable page - create_pages()/
+        // page() are idempotent per-slug, so this only creates the one new page,
+        // it does not touch or recreate any of the existing ones.
+        if (get_option('mentra_vn_pages_synced_v3')) { return; }
         self::create_pages();
-        update_option('mentra_vn_pages_synced_v2', 1);
+        update_option('mentra_vn_pages_synced_v3', 1);
     }
 
     /**
@@ -217,6 +227,78 @@ final class Mentra_Vietnam_Core_99 {
         if (class_exists('WC_Product_Variable')) {
             WC_Product_Variable::sync($product_id);
         }
+        wc_delete_product_transients($product_id);
+
+        return $product_id;
+    }
+
+    /**
+     * Phase 4.6: Infinity Cable is a real Mentra product page
+     * (gid://shopify/Product/9286483280124, handle mentra-live-charging-cable),
+     * not an anchor/section inside Mentra Live - see
+     * docs/product-classification.md for the re-opened classification. Same
+     * idempotent-lock pattern as maybe_create_mentra_live_product(), for the
+     * same reason (a single all-or-nothing item, not a resumable list).
+     */
+    public static function maybe_create_infinity_cable_product() {
+        if (get_option('mentra_vn_product_infinity_cable_v1')) { return; }
+        if (!class_exists('WC_Product_Simple')) { return; }
+        if (!add_option('mentra_vn_product_infinity_cable_lock', 1, '', 'no')) { return; }
+        self::create_infinity_cable_product();
+        update_option('mentra_vn_product_infinity_cable_v1', 1);
+    }
+
+    /**
+     * Idempotent by SKU 'MENTRA-INFINITY-CABLE': the source Shopify product
+     * has no literal SKU string (only a GID), so this is a documented stable
+     * internal SKU, not an invented variant. Simple (non-variable) product -
+     * the source has exactly one variant, always available. No price is
+     * ever set - see catalog-only hardening in functions.php.
+     */
+    public static function create_infinity_cable_product($force = false) {
+        if (!class_exists('WC_Product_Simple')) { return 0; }
+        $existing = get_posts([
+            'post_type' => 'product',
+            'post_status' => 'any',
+            'meta_key' => '_sku',
+            'meta_value' => 'MENTRA-INFINITY-CABLE',
+            'numberposts' => 1,
+            'fields' => 'ids',
+            'orderby' => 'ID',
+            'order' => 'ASC',
+        ]);
+        $existing_id = $existing ? (int) $existing[0] : 0;
+        if ($existing_id && !$force) { return $existing_id; }
+
+        $product = new WC_Product_Simple();
+        $product->set_name('Infinity Cable cho Mentra Live');
+        $product->set_slug('infinity-cable-mentra-live');
+        $product->set_sku('MENTRA-INFINITY-CABLE');
+        $product->set_status('publish');
+        $product->set_catalog_visibility('visible');
+        $product->set_manage_stock(false);
+        $product->set_stock_status('instock');
+        $product->set_description(
+            "Cáp Infinity dùng để sạc, đồng bộ dữ liệu và lập trình cho Mentra Live.\n\n" .
+            "Sạc kính ngay khi đang đeo, kết nối trực tiếp với Mentra Live để mở rộng thời gian sử dụng."
+        );
+        $product->set_short_description('Dùng để sạc, đồng bộ dữ liệu và lập trình cho Mentra Live.');
+
+        $featured_id = self::sideload_theme_asset('infinitycable.png', 'Infinity Cable cho Mentra Live');
+        if ($featured_id) { $product->set_image_id($featured_id); }
+        $gallery_ids = array_filter([
+            self::sideload_theme_asset('micro_charge_cable_mentra_live.png', 'Infinity Cable cho Mentra Live - đang kết nối'),
+        ]);
+        if ($gallery_ids) { $product->set_gallery_image_ids(array_values($gallery_ids)); }
+
+        // Canonical frontend URL - see mentra_vn_product_canonical_redirect()
+        // in functions.php, and mentra_vn_product_page_permalink() for the
+        // /products/mentra-live-charging-cable/ rewrite on the WP Page itself.
+        $product->update_meta_data('_mentra_vn_canonical_url', '/products/mentra-live-charging-cable/');
+        $product_id = $product->save();
+        if (!$product_id) { return 0; }
+
+        update_post_meta($product_id, '_yoast_wpseo_meta-robots-noindex', '1');
         wc_delete_product_transients($product_id);
 
         return $product_id;

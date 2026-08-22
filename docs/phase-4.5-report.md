@@ -114,3 +114,5 @@ Confirmed via live HTTP (curl against rendered `<link>`/`<script>` tags) that **
 | 17 | PHP/JS syntax passes | PASS |
 
 **Phase 4.5 status: TECHNICAL PASS / VISUAL VERIFICATION PENDING.** All structural, data-wiring, business-rule, and regression criteria pass. Criteria 13–14 (actual browser visual verification) are explicitly outstanding and require a human (or future browser-automation tooling) to confirm before this phase is fully closed.
+
+**Current status (2026-08-22)**: superseded by Phase 4.6 (Phase 4.5's own CSS values were guesswork, later replaced with verified real values), and the overall frontend visual-fidelity milestone is now OWNER APPROVED / COMPLETE following owner + Antigravity finishing work — see `docs/project-status.md`. Kept here as a historical record only.
