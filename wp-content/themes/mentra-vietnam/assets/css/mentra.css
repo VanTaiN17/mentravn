@@ -1640,6 +1640,11 @@ body{font-optical-sizing:auto}
 .mentra-vn-careers .career-form-status.is-error{color:var(--error)}
 .mentra-vn-careers .career-form-status.is-success{color:var(--brand-text)}
 
+/* Phase 6: minimal spacing for the injected reCAPTCHA v2 Checkbox widget -
+   no layout/redesign, just enough margin so the ~304x78px Google iframe
+   doesn't collide with the field above/below it in Newsletter/Contact/Career. */
+.mentra-recaptcha{margin:6px 0 18px;max-width:100%;overflow:hidden}
+
 /* Newsroom tabs restored for the static WordPress mirror. */
 .mentra-vn-blogs #mentra-newsroom-grid [data-newsroom-item][hidden]{display:none!important}
 .mentra-vn-blogs .newsroom-press-media{display:flex;align-items:center;justify-content:center;background:var(--surface-2);padding:clamp(28px,4vw,58px)}

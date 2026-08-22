@@ -3,6 +3,49 @@
   const qs=(s,r=document)=>r.querySelector(s), qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const root=document.documentElement;
 
+  // Phase 6: shared reCAPTCHA v2 Checkbox helper used by every protected
+  // form (Newsletter/Contact/Career). Widgets are always rendered
+  // explicitly via grecaptcha.render() - never the implicit data-sitekey
+  // auto-scan - so they work correctly no matter whether the container is
+  // inserted before or after the Google script finishes loading. No-op
+  // everywhere when MENTRA_VN.recaptcha.configured is false (reCAPTCHA not
+  // set up in wp-admin yet), so forms keep working unconfigured.
+  const recaptchaWidgetIds=new WeakMap();
+  function mountRecaptchaWidget(container){
+    if(recaptchaWidgetIds.has(container)) return recaptchaWidgetIds.get(container);
+    if(typeof grecaptcha==='undefined'||!grecaptcha.render) return null;
+    const id=grecaptcha.render(container,{sitekey:container.getAttribute('data-sitekey')});
+    recaptchaWidgetIds.set(container,id);
+    return id;
+  }
+  window.mentraVnRecaptchaOnLoad=function(){
+    qsa('.g-recaptcha[data-sitekey]').forEach(mountRecaptchaWidget);
+  };
+  function ensureRecaptchaWidget(form){
+    if(!MENTRA_VN.recaptcha||!MENTRA_VN.recaptcha.configured||!MENTRA_VN.recaptcha.siteKey) return null;
+    let container=qs('.g-recaptcha',form);
+    if(!container){
+      container=document.createElement('div');
+      container.className='g-recaptcha mentra-recaptcha';
+      container.setAttribute('data-sitekey',MENTRA_VN.recaptcha.siteKey);
+      const submit=qs('.career-submit,button[type="submit"]',form);
+      if(submit) form.insertBefore(container,submit); else form.appendChild(container);
+    }
+    mountRecaptchaWidget(container);
+    return container;
+  }
+  function getRecaptchaResponse(form){
+    const container=qs('.g-recaptcha',form);
+    const id=container&&recaptchaWidgetIds.get(container);
+    if(typeof grecaptcha==='undefined'||id===undefined||id===null) return '';
+    try{ return grecaptcha.getResponse(id)||''; }catch(_){ return ''; }
+  }
+  function resetRecaptcha(form){
+    const container=qs('.g-recaptcha',form);
+    const id=container&&recaptchaWidgetIds.get(container);
+    if(typeof grecaptcha!=='undefined'&&id!==undefined&&id!==null){ try{ grecaptcha.reset(id); }catch(_){} }
+  }
+
   function initHeader(){
     const header=qs('.site-header'); if(!header) return;
     const mobileButton=qs('button[aria-label="Mở menu"],button[aria-label="Open menu"]',header);
@@ -518,12 +561,13 @@
   function initNewsletter(){
     qsa('form[data-mentra-newsletter="1"]').forEach(form=>{
       const email=qs('input[type="email"]',form), btn=qs('button[type="submit"]',form); if(!email||!btn) return;
+      ensureRecaptchaWidget(form);
       const sync=()=>btn.disabled=!email.value.trim()||!email.checkValidity(); sync(); email.addEventListener('input',sync);
       form.addEventListener('submit',async e=>{
         e.preventDefault(); if(!email.checkValidity()) return email.reportValidity();
         btn.disabled=true; const old=btn.innerHTML; btn.textContent='Đang gửi…';
-        try{const body=new URLSearchParams({action:'mentra_vn_newsletter',nonce:MENTRA_VN.nonce,email:email.value.trim()}); const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body}); const j=await r.json(); btn.textContent=j.success?'Đã đăng ký':'Thử lại'; if(j.success) email.value='';}
-        catch(_){btn.textContent='Thử lại';}
+        try{const body=new URLSearchParams({action:'mentra_vn_newsletter',nonce:MENTRA_VN.nonce,email:email.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)}); const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body}); const j=await r.json(); btn.textContent=j.success?'Đã đăng ký':'Thử lại'; resetRecaptcha(form); if(j.success) email.value='';}
+        catch(_){btn.textContent='Thử lại';resetRecaptcha(form);}
         setTimeout(()=>{btn.innerHTML=old;sync()},1800);
       });
     });
@@ -539,6 +583,7 @@
   function initContact(){
     qsa('form[data-mentra-contact="1"]').forEach(form=>{
       const submit=qs('button[type="submit"]',form);
+      ensureRecaptchaWidget(form);
       form.addEventListener('submit',async e=>{
         e.preventDefault();
         const name=qs('#contact-name,input[name="name"]',form);
@@ -552,12 +597,13 @@
         }
         const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
         try{
-          const body=new URLSearchParams({action:'mentra_vn_contact_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),company:company?company.value.trim():'',subject:subject?subject.value:'Liên hệ',message:message.value.trim()});
+          const body=new URLSearchParams({action:'mentra_vn_contact_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),company:company?company.value.trim():'',subject:subject?subject.value:'Liên hệ',message:message.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
           if(submit) submit.textContent=j.success?'Đã gửi':'Gửi lại';
+          resetRecaptcha(form);
           if(j.success){form.reset();}
-        }catch(_){if(submit)submit.textContent='Gửi lại';}
+        }catch(_){if(submit)submit.textContent='Gửi lại';resetRecaptcha(form);}
         setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
       });
     });
@@ -569,6 +615,7 @@
       const submit=qs('.career-submit',form)||qs('button[type="submit"]',form);
       let status=qs('.career-form-status',form);
       if(!status){status=document.createElement('p');status.className='career-form-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');form.appendChild(status);}
+      ensureRecaptchaWidget(form);
       form.addEventListener('submit',async e=>{
         e.preventDefault();
         const name=qs('#career-name',form);
@@ -586,14 +633,15 @@
         const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
         status.textContent=''; status.classList.remove('is-error','is-success');
         try{
-          const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim()});
+          const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
           if(submit) submit.textContent=j.success?'Đã gửi':'Gửi lại';
           status.textContent=(j&&j.data&&j.data.message)?j.data.message:(j.success?'Đã gửi hồ sơ ứng tuyển.':'Có lỗi xảy ra, vui lòng thử lại.');
           status.classList.add(j.success?'is-success':'is-error');
+          resetRecaptcha(form);
           if(j.success){form.reset();}
-        }catch(_){if(submit)submit.textContent='Gửi lại';status.textContent='Có lỗi xảy ra, vui lòng thử lại.';status.classList.add('is-error');}
+        }catch(_){if(submit)submit.textContent='Gửi lại';status.textContent='Có lỗi xảy ra, vui lòng thử lại.';status.classList.add('is-error');resetRecaptcha(form);}
         setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
       });
     });
