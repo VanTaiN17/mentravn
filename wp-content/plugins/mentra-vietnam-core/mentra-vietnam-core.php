@@ -60,6 +60,20 @@ final class Mentra_Vietnam_Core_99 {
         'Other',
     ];
 
+    // Phase 6: reCAPTCHA v2 Checkbox configuration. Site key is public by
+    // nature (it goes into frontend markup); the secret key is server-only
+    // and must never be localized into JS or echoed on the frontend.
+    const RECAPTCHA_SITE_KEY_OPTION = 'mentra_vn_recaptcha_site_key';
+    const RECAPTCHA_SECRET_KEY_OPTION = 'mentra_vn_recaptcha_secret_key';
+    const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
+
+    // Phase 6: server-side rate limiting, WP transients only (no custom DB
+    // table). Same policy for all seven public form types (six business
+    // types + newsletter) - see docs/phase-6-report.md for the exact
+    // semantics (sliding window, not a strict fixed calendar window).
+    const RATE_LIMIT_MAX = 5;
+    const RATE_LIMIT_WINDOW = 600; // 10 minutes
+
     public static function init() {
         add_action('init', [__CLASS__, 'register_subscriber_cpt']);
         add_action('init', [__CLASS__, 'maybe_create_pages'], 20);
@@ -69,6 +83,7 @@ final class Mentra_Vietnam_Core_99 {
         add_action('init', [__CLASS__, 'maybe_import_mentra_articles'], 30);
         add_action('admin_menu', [__CLASS__, 'admin_menu']);
         add_action('admin_init', [__CLASS__, 'register_settings']);
+        add_action('admin_notices', [__CLASS__, 'recaptcha_admin_notice']);
         add_action('wp_ajax_mentra_vn_newsletter', [__CLASS__, 'newsletter']);
         add_action('wp_ajax_nopriv_mentra_vn_newsletter', [__CLASS__, 'newsletter']);
         add_action('wp_ajax_mentra_vn_contact_ajax', [__CLASS__, 'contact_ajax']);
@@ -513,6 +528,18 @@ final class Mentra_Vietnam_Core_99 {
             'sanitize_callback' => [__CLASS__, 'sanitize_contact_email'],
             'default' => self::CONTACT_EMAIL_DEFAULT,
         ]);
+        register_setting('mentra_vn_group', self::RECAPTCHA_SITE_KEY_OPTION, [
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        ]);
+        register_setting('mentra_vn_group', self::RECAPTCHA_SECRET_KEY_OPTION, [
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+            // Never exposed via the REST API - server-side only.
+            'show_in_rest' => false,
+        ]);
     }
 
     public static function sanitize_settings($value) {
@@ -549,26 +576,70 @@ final class Mentra_Vietnam_Core_99 {
     public static function settings_page() {
         $v = self::settings();
         $contact_email = get_option(self::CONTACT_EMAIL_OPTION, self::CONTACT_EMAIL_DEFAULT);
+        $site_key = get_option(self::RECAPTCHA_SITE_KEY_OPTION, '');
+        $secret_key = get_option(self::RECAPTCHA_SECRET_KEY_OPTION, '');
         ?>
         <div class="wrap">
             <h1>Mentra Việt Nam</h1>
             <p>Theme v3 dùng giao diện từ bản mirror Mentra. Tại đây bạn chỉ cần cấu hình nơi nhận thông tin khách hàng.</p>
+            <?php if (!self::recaptcha_enabled()) : ?>
+                <div class="notice notice-warning"><p><strong>reCAPTCHA chưa được cấu hình.</strong> Các form công khai (Liên hệ, Đối tác, Truyền thông, Tuyển dụng, Đăng ký nhận tin) hiện <strong>không</strong> được bảo vệ khỏi spam/bot. Nhập Site Key và Secret Key bên dưới để bật bảo vệ.</p></div>
+            <?php endif; ?>
             <form method="post" action="options.php">
                 <?php settings_fields('mentra_vn_group'); ?>
                 <table class="form-table" role="presentation">
                     <tr><th><label for="mentra-company">Tên đơn vị</label></th><td><input id="mentra-company" class="regular-text" name="<?php echo esc_attr(self::OPT); ?>[company]" value="<?php echo esc_attr($v['company']); ?>"></td></tr>
                     <tr><th><label for="mentra-contact-email">Email nhận liên hệ</label></th><td><input id="mentra-contact-email" class="regular-text" type="email" name="<?php echo esc_attr(self::CONTACT_EMAIL_OPTION); ?>" value="<?php echo esc_attr($contact_email); ?>"><p class="description">Áp dụng cho cả 6 loại form: Chung, Kinh doanh, Hỗ trợ, Đối tác, Truyền thông, Tuyển dụng.</p></td></tr>
                     <tr><th><label for="mentra-phone">Điện thoại</label></th><td><input id="mentra-phone" class="regular-text" name="<?php echo esc_attr(self::OPT); ?>[phone]" value="<?php echo esc_attr($v['phone']); ?>"></td></tr>
+                    <tr><th><label for="mentra-recaptcha-site">reCAPTCHA Site Key</label></th><td><input id="mentra-recaptcha-site" class="regular-text" type="text" autocomplete="off" name="<?php echo esc_attr(self::RECAPTCHA_SITE_KEY_OPTION); ?>" value="<?php echo esc_attr($site_key); ?>"><p class="description">reCAPTCHA v2 "Hộp kiểm" (Checkbox) - không dùng v3/Invisible/Enterprise. Khóa này công khai, được nhúng vào HTML frontend.</p></td></tr>
+                    <tr><th><label for="mentra-recaptcha-secret">reCAPTCHA Secret Key</label></th><td><input id="mentra-recaptcha-secret" class="regular-text" type="password" autocomplete="off" name="<?php echo esc_attr(self::RECAPTCHA_SECRET_KEY_OPTION); ?>" value="<?php echo esc_attr($secret_key); ?>"><p class="description">Chỉ dùng ở server để xác minh - không bao giờ xuất hiện ở frontend.</p></td></tr>
                 </table>
                 <?php submit_button(); ?>
             </form>
         </div><?php
     }
 
+    /**
+     * wp-admin-only visibility for the unconfigured state - per Phase 6
+     * scope, missing keys must not silently pretend protection exists.
+     * Shown on every admin screen (not just the settings page) so it can't
+     * be missed; deliberately not shown to frontend visitors.
+     */
+    public static function recaptcha_admin_notice() {
+        if (self::recaptcha_enabled()) { return; }
+        if (!current_user_can('manage_options')) { return; }
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if ($screen && $screen->id === 'settings_page_mentra-vietnam') { return; } // already shown inline there
+        printf(
+            '<div class="notice notice-warning is-dismissible"><p>%s <a href="%s">%s</a></p></div>',
+            esc_html__('Mentra Việt Nam: reCAPTCHA chưa được cấu hình - các form công khai hiện không được bảo vệ khỏi spam.', 'mentra-vietnam'),
+            esc_url(admin_url('options-general.php?page=mentra-vietnam')),
+            esc_html__('Cấu hình ngay', 'mentra-vietnam')
+        );
+    }
+
     private static function verify_public_nonce() {
         if (!check_ajax_referer('mentra_vn_public', 'nonce', false)) {
             wp_send_json_error(['message' => 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.'], 403);
         }
+    }
+
+    /**
+     * True only when both keys are non-empty. This is the single switch
+     * that decides whether reCAPTCHA is enforced at all - see
+     * enforce_recaptcha() for the fail-closed behavior once it is.
+     */
+    public static function recaptcha_enabled() {
+        $site = trim((string) get_option(self::RECAPTCHA_SITE_KEY_OPTION, ''));
+        $secret = trim((string) get_option(self::RECAPTCHA_SECRET_KEY_OPTION, ''));
+        return $site !== '' && $secret !== '';
+    }
+
+    /**
+     * Public by nature - safe to echo into frontend HTML/localized JS.
+     */
+    public static function recaptcha_site_key() {
+        return trim((string) get_option(self::RECAPTCHA_SITE_KEY_OPTION, ''));
     }
 
     public static function newsletter() {
@@ -622,8 +693,6 @@ final class Mentra_Vietnam_Core_99 {
             'Content-Type: text/plain; charset=UTF-8',
             self::build_reply_to($reply_name, $reply_email),
         ];
-
-        // --- Phase 6 insertion point: reCAPTCHA verification + rate limiting ---
 
         $sent = wp_mail($to, $subject, $body, $headers);
         if (!$sent) {
@@ -735,3 +804,15 @@ final class Mentra_Vietnam_Core_99 {
 }
 Mentra_Vietnam_Core_99::init();
 register_activation_hook(__FILE__, ['Mentra_Vietnam_Core_99', 'activate']);
+
+/**
+ * Thin bridge functions so the theme layer (functions.php - script enqueue,
+ * page-has-protected-form detection) can read reCAPTCHA config without
+ * reaching into the plugin's class internals directly.
+ */
+function mentra_vn_recaptcha_enabled() {
+    return Mentra_Vietnam_Core_99::recaptcha_enabled();
+}
+function mentra_vn_recaptcha_site_key() {
+    return Mentra_Vietnam_Core_99::recaptcha_site_key();
+}
