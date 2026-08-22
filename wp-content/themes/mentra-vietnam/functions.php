@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) { exit; }
 // mentra.js since then without ever bumping this cache-busting version
 // string, so any browser that cached the old CSS/JS before those changes
 // would keep serving it indefinitely (the query string never changed).
-define('MENTRA_VN_THEME_VERSION', '3.17.0');
+define('MENTRA_VN_THEME_VERSION', '3.18.0');
 define('MENTRA_VN_THEME_DIR', get_template_directory());
 define('MENTRA_VN_THEME_URI', get_template_directory_uri());
 
@@ -24,15 +24,65 @@ function mentra_vn_assets() {
     wp_enqueue_style('mentra-source', MENTRA_VN_THEME_URI . '/assets/css/mentra.css', ['mentra-utilities'], MENTRA_VN_THEME_VERSION);
     wp_enqueue_script('mentra-runtime', MENTRA_VN_THEME_URI . '/assets/js/mentra.js', [], MENTRA_VN_THEME_VERSION, true);
     $cart = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/gio-hang/');
+
+    // Phase 6: the Google v2 Checkbox script only ever loads on a route that
+    // genuinely renders a protected form (see mentra_vn_page_has_protected_form()),
+    // and only once reCAPTCHA is actually configured - see docs/phase-6-report.md.
+    $recaptcha = ['configured' => false, 'siteKey' => ''];
+    if (function_exists('mentra_vn_recaptcha_enabled') && mentra_vn_recaptcha_enabled() && mentra_vn_page_has_protected_form()) {
+        wp_enqueue_script(
+            'mentra-google-recaptcha',
+            'https://www.google.com/recaptcha/api.js?onload=mentraVnRecaptchaOnLoad&render=explicit&hl=vi',
+            ['mentra-runtime'],
+            null,
+            true
+        );
+        wp_scripts()->add_data('mentra-google-recaptcha', 'async', true);
+        wp_scripts()->add_data('mentra-google-recaptcha', 'defer', true);
+        $recaptcha = ['configured' => true, 'siteKey' => mentra_vn_recaptcha_site_key()];
+    }
+
     wp_localize_script('mentra-runtime', 'MENTRA_VN', [
         'home' => trailingslashit(home_url('/')),
         'theme' => MENTRA_VN_THEME_URI,
         'ajax' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('mentra_vn_public'),
         'cart' => $cart,
+        'recaptcha' => $recaptcha,
     ]);
 }
 add_action('wp_enqueue_scripts', 'mentra_vn_assets');
+
+/**
+ * Phase 6: true only when the current front-end request actually renders a
+ * protected form (Newsletter/Contact/Career) - gates loading the Google
+ * reCAPTCHA script. This is a real per-page content check, not a guess from
+ * the route name: the Newsletter footer form happens to appear on most
+ * (not all) static-source pages plus a few hand-authored PHP templates, and
+ * is genuinely absent from a handful of routes (e.g. /even-realities/,
+ * /nha-phat-trien/, /trong-kinh/, /tuyen-dung/'s own footer) - see
+ * docs/phase-6-report.md for the full audit.
+ */
+function mentra_vn_page_has_protected_form() {
+    if (is_admin()) { return false; }
+
+    // Hand-authored PHP templates known to embed a protected form inline.
+    if (is_page(['mentra-live', 'mentra-os', 'mentra-live-charging-cable'])) {
+        return true;
+    }
+    // /tin-tuc/ and every single article render the shared newsletter-cta partial.
+    if (is_page('tin-tuc') || is_singular('post')) {
+        return true;
+    }
+
+    $key = mentra_vn_get_source_key();
+    if (!$key || !mentra_vn_source_exists($key)) { return false; }
+    $html = file_get_contents(MENTRA_VN_THEME_DIR . '/templates/source/' . $key . '.html');
+    if ($html === false) { return false; }
+    return (strpos($html, 'data-mentra-newsletter') !== false)
+        || (strpos($html, 'data-mentra-contact') !== false)
+        || (strpos($html, 'data-career-form') !== false);
+}
 
 function mentra_vn_source_map() {
     return [
