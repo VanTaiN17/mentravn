@@ -89,10 +89,6 @@ img,svg,video{max-width:100%}
 .site-header{backdrop-filter:saturate(140%) blur(0);-webkit-backdrop-filter:saturate(140%) blur(0)}
 .site-header--filled,.site-header.is-scrolled{background:rgba(250,250,247,.94)!important;border-bottom-color:var(--border-subtle)!important;box-shadow:0 1px 0 rgba(15,23,42,.03)!important;backdrop-filter:saturate(160%) blur(16px);-webkit-backdrop-filter:saturate(160%) blur(16px)}
 .site-header--filled .desktop-nav-rail,.site-header.is-scrolled .desktop-nav-rail{color:var(--ink-primary)!important}
-.site-header--transparent:not(.is-scrolled) .logo-for-light{opacity:0;position:absolute;pointer-events:none}
-.site-header--transparent:not(.is-scrolled) .logo-for-dark{opacity:1}
-.site-header--filled .logo-for-light,.site-header.is-scrolled .logo-for-light{opacity:1;position:static}
-.site-header--filled .logo-for-dark,.site-header.is-scrolled .logo-for-dark{opacity:0;position:absolute;pointer-events:none}
 .site-header .nav-link:hover{background:rgba(255,255,255,.13)!important}
 .site-header--filled .nav-link:hover,.site-header.is-scrolled .nav-link:hover{background:rgba(15,23,42,.055)!important}
 .site-header.is-scrolled .lg\:hidden button span,.site-header--filled .lg\:hidden button span{background-color:var(--ink-primary)!important}
@@ -604,8 +600,6 @@ body.mentra-menu-open{overflow:hidden}
 .mentra-desktop-menu__external{width:15px;height:15px;flex:0 0 15px;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .site-header--transparent:not(.is-scrolled).mentra-nav-open,.site-header.mentra-nav-open{background:#fafaf7!important;border-bottom-color:rgba(17,21,18,.055)!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .site-header--transparent:not(.is-scrolled).mentra-nav-open .desktop-nav-rail,.site-header.mentra-nav-open .desktop-nav-rail{color:#111512!important}
-.site-header--transparent:not(.is-scrolled).mentra-nav-open .logo-for-light{opacity:1!important;position:static!important;pointer-events:auto!important}
-.site-header--transparent:not(.is-scrolled).mentra-nav-open .logo-for-dark{opacity:0!important;position:absolute!important;pointer-events:none!important}
 .site-header.mentra-nav-open .desktop-nav-trigger:hover,.site-header.mentra-nav-open .desktop-nav-trigger.is-active{background:transparent!important}
 .site-header.mentra-nav-open .desktop-nav-trigger.is-active{color:var(--brand-text)!important}
 @media(max-width:1023px){.mentra-desktop-menu,.mentra-nav-scrim{display:none!important}}

@@ -18,7 +18,13 @@ if ($product) {
     foreach ($ids as $attachment_id) {
         if (!$attachment_id) { continue; }
         $url = wp_get_attachment_image_url($attachment_id, 'large');
-        if ($url) { $thumbs[] = ['url' => $url, 'alt' => 'Infinity Cable']; }
+        if (!$url) { continue; }
+        // Phase 8: was hardcoded 'Infinity Cable' for every image - see the
+        // matching fix/comment in page-mentra-live.php.
+        $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+        if (!$alt) { $alt = get_the_title($attachment_id); }
+        if (!$alt) { $alt = 'Infinity Cable'; }
+        $thumbs[] = ['url' => $url, 'alt' => $alt];
     }
 }
 if (!$thumbs) {
@@ -69,7 +75,7 @@ mentra_vn_render_partial('site-header');
 <div class="order-1 md:order-1">
 
 <div class="product-detail-media-card mb-5" style="background-color:var(--surface-1)">
-<img alt="Infinity Cable" class="product-detail-media-image" src="<?php echo esc_url($hero_image_url); ?>">
+<img alt="<?php echo esc_attr($thumbs[0]['alt']); ?>" class="product-detail-media-image" src="<?php echo esc_url($hero_image_url); ?>">
 </div>
 <div class="product-detail-thumbnails">
 <?php foreach ($thumbs as $i => $t) : ?>

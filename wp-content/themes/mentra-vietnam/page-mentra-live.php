@@ -23,7 +23,17 @@ if ($mentra_live) {
     foreach ($ids as $attachment_id) {
         if (!$attachment_id) { continue; }
         $url = wp_get_attachment_image_url($attachment_id, 'large');
-        if ($url) { $thumbs[] = ['url' => $url, 'alt' => 'Mentra Live']; }
+        if (!$url) { continue; }
+        // Phase 8: was hardcoded 'Mentra Live' for every image regardless of
+        // which one - every gallery thumbnail (frame, charging cable, case,
+        // etc.) announced the same generic alt text. Each attachment already
+        // has a distinct, descriptive post_title from sideload_theme_asset()
+        // (e.g. "Mentra Live - khung kính") - prefer the real WordPress alt
+        // text field if ever set, else that per-image title.
+        $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+        if (!$alt) { $alt = get_the_title($attachment_id); }
+        if (!$alt) { $alt = 'Mentra Live'; }
+        $thumbs[] = ['url' => $url, 'alt' => $alt];
     }
 }
 if (!$thumbs) {
@@ -107,7 +117,7 @@ mentra_vn_render_partial('site-header');
 <div class="order-1 md:order-1">
 
 <div class="product-detail-media-card mb-5" style="background-color:var(--surface-1)">
-<img alt="Mentra Live" class="product-detail-media-image" src="<?php echo esc_url($hero_image_url); ?>">
+<img alt="<?php echo esc_attr($thumbs[0]['alt']); ?>" class="product-detail-media-image" src="<?php echo esc_url($hero_image_url); ?>">
 </div>
 <div class="product-detail-thumbnails">
 <?php foreach ($thumbs as $i => $t) : ?>
