@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) { exit; }
 // mentra.js since then without ever bumping this cache-busting version
 // string, so any browser that cached the old CSS/JS before those changes
 // would keep serving it indefinitely (the query string never changed).
-define('MENTRA_VN_THEME_VERSION', '3.27.0');
+define('MENTRA_VN_THEME_VERSION', '3.28.0');
 define('MENTRA_VN_THEME_DIR', get_template_directory());
 define('MENTRA_VN_THEME_URI', get_template_directory_uri());
 
