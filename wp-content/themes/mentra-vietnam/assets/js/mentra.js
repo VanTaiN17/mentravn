@@ -573,7 +573,7 @@
       panel.innerHTML=items.map((item,index)=>{
         const qid='home-faq-btn-'+slug+'-'+index;
         const aid='home-faq-answer-'+slug+'-'+index;
-        return `<div class="home-faq-item${index===0?' is-open':''}"><button aria-controls="${aid}" aria-expanded="${index===0?'true':'false'}" class="home-faq-question" id="${qid}" type="button"><span>${item[0]}</span><span aria-hidden="true" class="home-faq-toggle">${index===0?'−':'+'}</span></button><div aria-labelledby="${qid}" class="home-faq-answer" id="${aid}" role="region"><p>${item[1]}</p></div></div>`;
+        return `<div class="home-faq-item${index===0?' is-open':''}"><button aria-controls="${aid}" aria-expanded="${index===0?'true':'false'}" class="home-faq-question" id="${qid}" type="button"><span>${item[0]}</span><span aria-hidden="true" class="home-faq-toggle">${index===0?'-':'+'}</span></button><div aria-labelledby="${qid}" class="home-faq-answer" id="${aid}" role="region"><p>${item[1]}</p></div></div>`;
       }).join('');
       bindQuestions();
     };
@@ -585,7 +585,7 @@
         btn.addEventListener('click',()=>{
           const open=item.classList.toggle('is-open');
           btn.setAttribute('aria-expanded',String(open));
-          if(toggle) toggle.textContent=open?'−':'+';
+          if(toggle) toggle.textContent=open?'-':'+';
         });
       });
     };
@@ -637,7 +637,7 @@
         if (!isOpen) {
           item.classList.add('is-open');
           btn.setAttribute('aria-expanded', 'true');
-          if (toggle) toggle.textContent = '−';
+          if (toggle) toggle.textContent = '-';
         }
       });
     });
