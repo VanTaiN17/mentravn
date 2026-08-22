@@ -1733,8 +1733,8 @@ body{font-optical-sizing:auto}
 @media(min-width:1280px){.xl\:text-\[60px\]{font-size:60px}}
 
 /* --- nh-compare styling --- */
-.nh-compare{display:grid;grid-template-columns:repeat(2,1fr);grid-gap:10px;gap:10px}
-@media (min-width: 40em){.nh-compare{gap:16px}}
+.nh-compare{display:grid;grid-template-columns:1fr;grid-gap:16px;gap:16px}
+@media (min-width: 40em){.nh-compare{grid-template-columns:repeat(2,1fr);gap:16px}}
 @media (min-width: 48em){.nh-compare{gap:24px}}
 .nh-compare__card{border-radius:var(--nh-radius);padding:14px;position:relative;overflow:hidden}
 @media (min-width: 32em){.nh-compare__card{padding:18px}}
