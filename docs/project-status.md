@@ -1,8 +1,8 @@
 # Mentra Vietnam — Current Project Status
 
 Last updated: 2026-08-22
-Current stable phase: Phase 7 — WP Mail SMTP Integration. IMPLEMENTATION PASS / DELIVERY CONFIGURATION PENDING (not yet pushed — see Git section below).
-Current branch: `feature/mail-delivery` (based on `feature/recaptcha-security`, Phase 6 PASS).
+Current stable phase: Phase 7 — WP Mail SMTP Integration (IMPLEMENTATION PASS / DELIVERY CONFIGURATION PENDING), plus a resolved production-blocking hotfix on top. Not yet pushed — see Git section below.
+Current branch: `fix/forms-captcha-500` (based on `feature/mail-delivery`, based on `feature/recaptcha-security`, Phase 6 PASS).
 Git remote: `origin` = `https://github.com/VanTaiN17/mentravn.git`
 Push status: see Git section below.
 
@@ -40,6 +40,9 @@ Status: PASS. Added Google reCAPTCHA v2 Checkbox (never v3/Invisible/Enterprise)
 ### Phase 7 — WP Mail SMTP Integration + Delivery Verification
 Status: **IMPLEMENTATION PASS / DELIVERY CONFIGURATION PENDING** (not a code failure — see below). Audited WP Mail SMTP (v4.9.0, installed and active) and found it not yet pointed at a real provider: mailer is still native PHP `mail()`, no SMTP/API credentials configured for any mailer, and From Email is a leftover local-environment placeholder (`dev-email@wpengine.local`). Audited every `wp_mail()` call in the Mentra plugin and confirmed the existing header architecture already matches the recommended design — only `Content-Type` and a Reply-To built from the validated visitor email/name are ever set, never a From header — so **no code change was needed or made this phase**. Verified live through the real AJAX pipeline (nonce + Phase 6 reCAPTCHA/rate-limiting fully live, unbypassed): all six business forms reach `wp_mail()` with the correct recipient (`contact@domain.vn`), correct Vietnamese UTF-8 subject prefixes/body, and correct Reply-To; missing/failed CAPTCHA and rate-limiting all still correctly block before `wp_mail()`. Also investigated and cleared the two external mobile-menu commits Phase 6 flagged (`02b9bcb`, `c24432a`) — confirmed theme/frontend-only, no Forms/Security/Mail code touched, no secrets/debug code, kept as-is. Real external mail delivery is **not yet configured or verifiable** — that is an owner wp-admin action (provider selection + credentials + DNS), documented in `docs/mail-configuration.md`. Full detail: `docs/phase-7-report.md`.
 
+### Forms Hotfix — reCAPTCHA invisible + AJAX 500 (RESOLVED)
+Status: **RESOLVED.** After Phase 7, the owner began real WP Mail SMTP delivery testing and hit two real, reproduced issues. (1) A genuine code bug: `ensureRecaptchaWidget()` in `mentra.js` used `form.insertBefore(container, submit)`, which requires the submit button to be a *direct* child of the form — true for Contact/Career but not for Newsletter (button nested in a wrapper `<div>`), so it threw on Newsletter's own widget injection. Because every `init*()` call shared one unguarded `DOMContentLoaded` chain, that throw silently prevented `initContact()`/`initCareer()` from running at all on any page that also has the Newsletter footer form (nearly every page) — explaining why the reCAPTCHA widget never appeared and why Contact/Career's AJAX wiring wasn't attached. Fixed (`submit.parentNode.insertBefore(...)`) and hardened (each initializer now runs isolated via a `runInit()` wrapper, so one throwing can never again silently disable unrelated ones). (2) A live WP Mail SMTP configuration mistake (not a code issue): the SMTP Host field had been set to an email address instead of a real hostname, making `wp_mail()` genuinely fail — which Mentra's existing, already-correct Phase 5 failure handling reported as a controlled `HTTP 500` JSON error, exactly per spec (confirmed zero PHP warnings/fatals via a temporary local-only `WP_DEBUG_LOG`, reverted after diagnosis). Corrected (already-known Gmail SMTP host). Also found and corrected: the owner's "recipient" test was actually only touching WP Mail SMTP's From Email field, never Mentra's own `mentra_vn_contact_email` — set that option (DB only, never in source) to the owner's own already-known address so their real-delivery test actually reaches an inbox they can check. Empirically disproved (not just by inspection) the theory that saving the recipient setting clears reCAPTCHA options — the three settings are fully independent `register_setting()` calls. Full six-form + Newsletter matrix re-verified live after the fix, including rate-limit/CAPTCHA-failure/`wp_mail()`-forced-false negative paths — all correctly controlled. Full detail: `docs/forms-hotfix-report.md`.
+
 ## Current architecture
 
 1. **Static marketing pages**: still served by `functions.php`'s `mentra_vn_source_map()` → `mentra_vn_render_source()`, echoing a static HTML file from `templates/source/*.html` inside a real WP Page. Editing these pages means editing the HTML file, not the WP editor.
@@ -74,7 +77,7 @@ Status: **IMPLEMENTATION PASS / DELIVERY CONFIGURATION PENDING** (not a code fai
 - News category: `Bài viết`, slug `bai-viet` — look up by slug, do not hardcode the term ID.
 - Article identity meta: `_mentra_vn_article=1`, `_mentra_vn_legacy_slug`, `_mentra_vn_article_authors` (array of `['name','role','avatar']`).
 - Press data source: `wp-content/themes/mentra-vietnam/data/press.php` — never query `wp_posts` for press content.
-- Contact-form recipient: WordPress option `mentra_vn_contact_email` (default `contact@domain.vn`), editable at Settings → Mentra Việt Nam — always read via `contact_email()` in the plugin, never hardcode the address.
+- Contact-form recipient: WordPress option `mentra_vn_contact_email` (default `contact@domain.vn`), editable at Settings → Mentra Việt Nam — always read via `contact_email()` in the plugin, never hardcode the address. **Currently set to the owner's personal address for real-delivery testing** (set during the Forms Hotfix, DB option only, not in source) — replace with the real production recipient before launch.
 - reCAPTCHA v2 keys: WordPress options `mentra_vn_recaptcha_site_key` (public) / `mentra_vn_recaptcha_secret_key` (server-only, never expose), both currently empty on this install — editable at Settings → Mentra Việt Nam. Read via `Mentra_Vietnam_Core_99::recaptcha_enabled()`/`recaptcha_site_key()`, or the theme-layer bridge functions `mentra_vn_recaptcha_enabled()`/`mentra_vn_recaptcha_site_key()` — never hardcode or duplicate this check.
 
 ## Current news state (Phase 4 verified)
@@ -130,7 +133,7 @@ No further phase is currently scoped. Remaining known work is entirely **owner/a
 
 1. `CLAUDE.md`
 2. `docs/project-status.md` (this file)
-3. `docs/phase-7-report.md` (latest phase report)
+3. `docs/forms-hotfix-report.md` (most recent — resolved a production-blocking regression found while testing Phase 7), then `docs/phase-7-report.md` (latest full phase report)
 4. `docs/mail-configuration.md` (owner mail setup guide), `docs/form-security.md` (anti-spam architecture reference), `docs/forms-inventory.md` (field-level reference for every form)
 5. `docs/phase-4.6-report.md`, `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md` (historical reference only — frontend milestone is closed, do not treat their "pending" language as current)
 6. The relevant specialized document for whatever phase is being started next (e.g. `docs/route-map.csv` for routing, `docs/news-migration-manifest.md` for further news work)
