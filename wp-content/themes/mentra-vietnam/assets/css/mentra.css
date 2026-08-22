@@ -872,8 +872,15 @@ body.mentra-menu-open{overflow:hidden}
   .home-faq-header h2{font-size:20px}
   .home-faq-header p{font-size:15px}
   .home-faq-layout{grid-template-columns:1fr!important;gap:22px!important}
-  .home-faq-tabs{position:static!important;flex-direction:row!important;overflow-x:auto!important;gap:8px!important;margin-inline:calc(-1 * var(--container-px));padding-inline:var(--container-px);padding-bottom:4px}
-  .home-faq-tab{width:auto!important;min-height:40px!important;padding:0 14px!important;white-space:nowrap;border:1px solid var(--border-subtle)!important;font-size:13px!important}
+  .home-faq-tabs{position:static!important;display:flex!important;flex-direction:row!important;overflow-x:auto!important;gap:24px!important;margin:0 calc(-1 * var(--container-px)) 16px !important;padding:0 var(--container-px) 8px !important;border-bottom:1px solid var(--border-subtle)!important}
+  .home-faq-tab{width:auto!important;min-height:42px!important;padding:0 0 8px 0!important;white-space:nowrap;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;font-size:15px!important;font-weight:600!important;color:var(--ink-secondary)!important;box-shadow:none!important}
+  .home-faq-tab:hover,
+  .home-faq-tab.is-active,
+  .home-faq-tab[aria-selected="true"] {
+    background: transparent !important;
+    color: var(--brand-text) !important;
+    border-bottom: 2px solid var(--brand) !important;
+  }
   .home-faq-question{min-height:68px!important;font-size:16px!important}
 }
 
