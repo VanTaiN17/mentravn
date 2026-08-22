@@ -39,12 +39,15 @@ If older documentation conflicts with a later phase report, the later phase wins
 
 ## Git rules
 
-- Always inspect git status, current branch, log and remote first.
+- Always inspect git status, current branch (`git branch --show-current`), log (`git log --oneline -15`) and remote (`git remote -v`) first.
 - Never discard user changes.
-- Never use git reset --hard.
-- Never use git clean -fd.
+- Never use git reset --hard without explicit owner permission.
+- Never use git clean -fd without explicit owner permission.
+- Never use git restore . or git checkout -- . without explicit owner permission.
 - Never force push.
 - Never push unless the owner explicitly requests it.
+- Never merge or rebase unless the owner explicitly requests it.
+- Preserve owner/Antigravity changes. Do not revert unrelated commits (e.g. frontend/visual work) simply because they were not authored by Claude — investigate and keep legitimate concurrent work.
 - Use one branch per phase.
 - Use small logical commits.
 - Working tree should be clean at phase boundaries.
@@ -121,16 +124,23 @@ Current form categories include:
 - Career
 - Newsletter where applicable
 
-All business-contact form mail currently goes to:
-contact@domain.vn
+All business-contact form mail currently goes to a single configurable
+recipient (default contact@domain.vn, a confirmed placeholder — see
+docs/project-status.md for the current real value).
 
-Later:
-- Google reCAPTCHA v2 Checkbox
-- server-side verification
-- wp_mail()
+Implemented (see docs/project-status.md for the current phase/hotfix state):
+- Google reCAPTCHA v2 Checkbox, server-side verification, fail closed
+- wp_mail() as the only transport
 - WP Mail SMTP handles SMTP transport
 
 Do not build custom SMTP transport.
+
+Security principle (durable — see docs/project-status.md for the current
+implementation task): a disabled/readonly/locked frontend field, and the
+HTTP Referer header alone, are UX affordances, not a sufficient security
+boundary on their own. Server-side validation of form type/context must be
+bound to a scoped nonce (or equivalent tamper-evident mechanism), not
+inferred solely from Referer or trusted from any client-submitted field.
 
 ## Legal content
 
