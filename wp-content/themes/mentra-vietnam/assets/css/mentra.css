@@ -364,7 +364,6 @@ body.mentra-menu-open{overflow:hidden}
 .home-faq-answer{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s ease,opacity .2s ease}
 .home-faq-answer>*{overflow:hidden}
 .home-faq-item.is-open .home-faq-answer{grid-template-rows:1fr;opacity:1}
-.home-faq-item.is-open .home-faq-toggle{transform:rotate(45deg)}
 .home-faq-item.is-open .home-faq-answer>div,.home-faq-item.is-open .home-faq-answer>p{padding-bottom:22px}
 @media(max-width:767px){.home-faq-layout{grid-template-columns:1fr;gap:22px}.home-faq-tabs{position:static;flex-direction:row;overflow-x:auto;margin-inline:calc(-1 * var(--container-px));padding-inline:var(--container-px);padding-bottom:4px}.home-faq-tab{width:auto;white-space:nowrap;border:1px solid var(--border-subtle)}}
 
