@@ -1,12 +1,11 @@
 # Mentra Vietnam — Current Project Status
 
 Last updated: 2026-08-22
-Current stable phase: Phases 1–7 all PASS/COMPLETE. Forms Hotfix + its UX/branding/acknowledgement-email extension RESOLVED/COMPLETE, but with one known remaining security gap (see "Current Forms Hotfix — Known Remaining Issue" below). **The immediate next task is a scoped hotfix, NOT Phase 8** — see "Next Task" below.
+Current stable phase: Phases 1–7 all PASS/COMPLETE. Forms Hotfix + its UX/branding/acknowledgement-email extension RESOLVED/COMPLETE. The **Final Forms/Purchase/Email Hotfix is now COMPLETE** (nonce-bound security replacing Referer, Purchase-specific Sales flow, CID-embedded email logo) — see "Final Forms/Purchase/Email Hotfix" below. The previously-flagged Referer security gap is **resolved**. **Do not start Phase 8 without explicit owner approval of this hotfix.**
 Current branch: `fix/forms-captcha-500`.
-Latest commit: `d1410c4` — `docs: document branding, locked context, success state, and acknowledgement email`.
-Working tree: clean.
+Latest commit: the "docs: finalize final forms/purchase/email hotfix" commit that includes this file update — run `git log -1 --oneline` for the exact hash; this header is not automatically re-synced on later commits.
+Working tree: clean at last check.
 Branch lineage: `fix/forms-captcha-500` → `feature/mail-delivery` (Phase 7) → `feature/recaptcha-security` (Phase 6) → `feature/forms-architecture` (Phase 5) → `fix/full-visual-fidelity` (owner-approved frontend).
-Ahead of `feature/mail-delivery`: 5 commits (`3684c59`, `8f36b96`, `60cb7ef`, `b03d348`, `d1410c4`).
 Upstream/tracking: `fix/forms-captcha-500` has **no upstream** — never pushed. `feature/mail-delivery`, `feature/recaptcha-security`, `feature/forms-architecture` are also local-only (created but not pushed). `fix/full-visual-fidelity` and five other earlier branches (`audit/site-inventory`, `fix/static-pages`, `feature/woocommerce-catalog`, `feature/news-posts`) already have matching `origin/*` refs from an earlier authorized push — those remain the only branches on GitHub.
 Git remote: `origin` = `https://github.com/VanTaiN17/mentravn.git` (canonical, only remote configured).
 Push status: **nothing pushed this session or since** — do not push without explicit owner authorization.
@@ -49,70 +48,32 @@ Status: **IMPLEMENTATION PASS / DELIVERY CONFIGURATION PENDING** (not a code fai
 Status: **RESOLVED.** After Phase 7, the owner began real WP Mail SMTP delivery testing and hit two real, reproduced issues. (1) A genuine code bug: `ensureRecaptchaWidget()` in `mentra.js` used `form.insertBefore(container, submit)`, which requires the submit button to be a *direct* child of the form — true for Contact/Career but not for Newsletter (button nested in a wrapper `<div>`), so it threw on Newsletter's own widget injection. Because every `init*()` call shared one unguarded `DOMContentLoaded` chain, that throw silently prevented `initContact()`/`initCareer()` from running at all on any page that also has the Newsletter footer form (nearly every page) — explaining why the reCAPTCHA widget never appeared and why Contact/Career's AJAX wiring wasn't attached. Fixed (`submit.parentNode.insertBefore(...)`) and hardened (each initializer now runs isolated via a `runInit()` wrapper, so one throwing can never again silently disable unrelated ones). (2) A live WP Mail SMTP configuration mistake (not a code issue): the SMTP Host field had been set to an email address instead of a real hostname, making `wp_mail()` genuinely fail — which Mentra's existing, already-correct Phase 5 failure handling reported as a controlled `HTTP 500` JSON error, exactly per spec (confirmed zero PHP warnings/fatals via a temporary local-only `WP_DEBUG_LOG`, reverted after diagnosis). Corrected (already-known Gmail SMTP host). Also found and corrected: the owner's "recipient" test was actually only touching WP Mail SMTP's From Email field, never Mentra's own `mentra_vn_contact_email` — set that option (DB only, never in source) to the owner's own already-known address so their real-delivery test actually reaches an inbox they can check. Empirically disproved (not just by inspection) the theory that saving the recipient setting clears reCAPTCHA options — the three settings are fully independent `register_setting()` calls. Full six-form + Newsletter matrix re-verified live after the fix, including rate-limit/CAPTCHA-failure/`wp_mail()`-forced-false negative paths — all correctly controlled. Full detail: `docs/forms-hotfix-report.md`.
 
 ### Forms Hotfix Extension — Branding, Locked Contact Context, Success State, Acknowledgement Email
-Status: **COMPLETE.** Owner-approved UX additions on the same branch. Contact/Career forms now show the existing local Mentra logo (`assets/mentra_logo.svg`, no new asset) plus a context-specific Vietnamese heading. The five contact-style pages (including plain `/lien-he/`, locked to "Chung") no longer show a selectable form-type dropdown — `#contact-subject` is replaced with a non-interactive "Loại yêu cầu" badge, removing the duplicate-choice UX. **Security boundary**: the locked badge is UX only — `Mentra_Vietnam_Core_99::route_locked_type()` independently re-derives the authoritative type server-side from the request's `Referer` (`wp_get_referer()`), which a client-side HTML/hidden-input edit cannot spoof; verified live that a spoofed `subject=Sales` with `Referer: /doi-tac/` is still correctly mailed as Partnership. Falls back to the pre-existing Phase 5 whitelist when Referer is unavailable — never weaker than before. On successful submission the form (and its reCAPTCHA widget) is replaced by a dedicated, focus-managed, `aria-live` success card with a "Về trang chủ" CTA (`home_url('/')`, no hardcoded URL, no auto-redirect); on failure the form stays visible with entered values intact and a new inline error-message element. New feature (no prior implementation existed): every business-form submission now sends an **HTML admin notification** (upgraded from plain text) and, only after that succeeds, a best-effort **HTML customer acknowledgement** sharing the same short reference ID — both using the theme's own logo via `get_template_directory_uri()` (never a hardcoded domain). Verified both failure directions live (admin failure blocks the customer send and reports a controlled error; customer-only failure still reports success). Newsletter is untouched. Full detail: `docs/forms-hotfix-report.md` (extension section).
+Status: **COMPLETE**, superseded on the Referer point by the Final Forms/Purchase/Email Hotfix below. Owner-approved UX additions on the same branch. Contact/Career forms now show the existing local Mentra logo plus a context-specific Vietnamese heading. The five contact-style pages (including plain `/lien-he/`, locked to "Chung") no longer show a selectable form-type dropdown — `#contact-subject` is replaced with a non-interactive "Loại yêu cầu" badge, removing the duplicate-choice UX. On successful submission the form (and its reCAPTCHA widget) is replaced by a dedicated, focus-managed, `aria-live` success card with a "Về trang chủ" CTA (`home_url('/')`, no hardcoded URL, no auto-redirect); on failure the form stays visible with entered values intact and a new inline error-message element. Every business-form submission sends an **HTML admin notification** and, only after that succeeds, a best-effort **HTML customer acknowledgement** sharing the same short reference ID. Newsletter is untouched. Full detail: `docs/forms-hotfix-report.md` (extension section). **Note:** this entry originally described `route_locked_type()`/`wp_get_referer()` as the security boundary — that mechanism has since been **removed and replaced** by nonce scoping, see below. Do not reuse the Referer-based description when reasoning about current security.
 
-## Current Forms Hotfix — Known Remaining Issue (READ BEFORE TOUCHING FORMS)
+### Final Forms/Purchase/Email Hotfix — Nonce Security, Purchase Flow, CID Logo
+Status: **COMPLETE.** Owner-approved scoped hotfix on the same branch, not Phase 8. Three changes:
 
-The Forms Hotfix Extension (above) made `Mentra_Vietnam_Core_99::route_locked_type()` — which reads the request's `Referer` header via `wp_get_referer()` — the authoritative server-side source for which of the five contact-style form types (general/sales/support/partnership/media) a submission belongs to, replacing trust in the client-submitted `subject` field. This is a real improvement (verified live: a spoofed `subject=Sales` with `Referer: /doi-tac/` was still correctly classified and mailed as Partnership) and is **not a security hole** — every value it can produce is still one of the six whitelisted form types, so the worst case of a Referer being absent/spoofed by a non-browser client is a mail sent with an imprecise-but-still-legitimate classification, never an arbitrary subject/type.
+1. **Nonce security replaces Referer.** `route_locked_type()`/`wp_get_referer()` is fully removed from the plugin — no longer read anywhere. Replaced by a scoped WordPress nonce: at render, `mentra_vn_current_form_type()`/`mentra_vn_current_purchase_context()` resolve the exact form context (type, and for Sales, Purchase intent/product) from the route/query, and a nonce is created for exactly that context (`mentra_vn_contact_{type}`, or `mentra_vn_contact_sales_purchase_{product}` for Purchase). At submission, the client-submitted `form_type`/`intent`/`mentra_product` are normalized/whitelisted, the same action string is recomputed, and the submitted nonce must verify against it — a nonce created for one context can never verify against another, so tampering fails server-side regardless of what any client-submitted field says. Verified live with a full tamper matrix (wrong type + reused nonce, missing/invalid type, missing nonce, wrong-context nonce) — all correctly `400`/`403`, zero mail sent.
+2. **Purchase-specific Sales form.** `/lien-he/?topic=sales&intent=purchase&mentra_product=<key>` (note: **`mentra_product`, not `product`** — a plain `product` query var collides with WooCommerce's own registered query var for the `product` CPT and gets 301-redirected away by `redirect_canonical()` before Mentra's code runs; confirmed live, documented in `docs/forms-hotfix-report.md`). Server allowlist (`PRODUCT_ALLOWLIST`): `mentra-live` → "Mentra Live", `mentra-live-charging-cable` → "Infinity Cable cho Mentra Live" — the only source of any product display name, raw query text is never echoed. Purchase form: locked Product badge, Full name, Email, Phone (required, international-friendly format, not Vietnam-only), Address (required), Message, reCAPTCHA — **no Company field in Purchase mode** (plain `?topic=sales` without `intent=purchase` is completely unaffected and still shows Company). Mentra Live's and Infinity Cable's "Liên hệ mua hàng" CTAs now build this URL via `add_query_arg()`/`home_url()`. Invalid/missing product or intent silently falls back to the normal Sales form/context, both at render and at submission — never displays the raw value. Full product-tamper matrix verified live (product swapped while reusing a nonce issued for a different product, invalid product, garbage intent, missing product, missing nonce) — all correctly `403`, zero mail sent.
+3. **Email logo CID fix.** HTML emails (admin + customer, all types) now embed the Mentra logo as a `Content-ID` MIME attachment (`cid:mentra-logo`) instead of a remote `<img src="{get_template_directory_uri()}...">` URL — the latter resolved to the unreachable `http://mentra-vn.local/...` locally and would depend on the recipient's mail client fetching a remote URL even in production. New `mail_with_logo()` wraps every send with a `phpmailer_init` hook that's added immediately before and removed immediately after `wp_mail()`, so it never leaks to Newsletter or any other WordPress email. New asset `assets/mentra_logo_email.png` (360×94, transparent) is a raster derivative of the existing `mentra_logo.svg`, generated via `sharp` (scratchpad-only tool, not a project dependency) — the original SVG was not modified. Verified structurally (isolated PHPMailer MIME test) and via real sends through the already-configured WP Mail SMTP → Gmail relay; actual inbox rendering still needs owner eyes-on confirmation (Claude has no inbox access).
 
-**However, `Referer` is not a cryptographically sound security boundary** (a non-browser HTTP client can set it to anything) and must not be treated as the final word, especially once a **Purchase** intent/product context is added (see Next Task below), where getting the context wrong has more consequence than a mislabeled subject line. **Do not extend or rely further on Referer-based trust.** The next task replaces it with a scoped nonce bound to the rendered form type/context (and, for Purchase, the product key) — see below.
+Full test matrix, tamper-test detail, and file list: `docs/forms-hotfix-report.md` (final section).
 
-## Next Task — Final Forms / Purchase / Email Hotfix (owner-approved, NOT Phase 8)
+## Security status (current, durable — see also CLAUDE.md)
 
-This is the immediate next engineering task once work resumes. It is a scoped hotfix on top of the Forms Hotfix Extension, not the start of Phase 8 — **do not begin Phase 8 work until the owner explicitly approves this hotfix as complete.**
-
-### A. Nonce security (replaces Referer as the authority)
-
-Replace `route_locked_type()`'s Referer-based resolution with a **scoped nonce** that binds to:
-- the normalized form type being rendered on that page, and
-- for the Purchase flow (below), the purchase intent + product context.
-
-A tampered type/product with a reused/mismatched nonce must fail server-side. Referer may remain as a defense-in-depth signal but must no longer be the deciding factor.
-
-### B. Purchase-specific Sales form
-
-When a visitor clicks "Liên hệ mua hàng" from a supported product, route them into a **Purchase** variant of the Sales form.
-
-Expected URL model: `/lien-he/?topic=sales&intent=purchase&product=<stable-key>`
-
-Support at minimum these stable product keys:
-- `mentra-live`
-- `mentra-live-charging-cable`
-
-Purchase form fields: locked Product, Full name, Email, Phone, Address, Message/Note, reCAPTCHA. **Do not show Company in Purchase mode.** Plain `/lien-he/?topic=sales` (no `intent=purchase`) remains the normal Sales form and may still show Company.
-
-### C. Product allowlist
-
-Never trust raw `product` query text. Resolve it through a server-side stable-key allowlist (at minimum the two keys above). The product title shown in the UI and in mail must come from that server-approved mapping, never echoed from the raw query value.
-
-### D. Product CTA wiring
-
-Mentra Live's and Infinity Cable's "Liên hệ mua hàng" CTAs must link into Purchase mode using the stable product keys above. Build the URL via `home_url()`/relative paths — never hardcode `mentra-vn.local`.
-
-### E. Purchase emails
-
-Admin purchase email must contain: Product (server-approved name), Full name, Email, Phone, Address, Message, Reference ID, source/time. **Do not show Company.** Customer purchase acknowledgement must name the approved product and confirm the enquiry was received. This is explicitly **not** checkout/order completion — no price, no payment, no order state.
-
-### F. Email logo bug (new finding, not yet fixed)
-
-The current HTML emails (admin + customer) reference the Mentra logo via `get_template_directory_uri()`, which on this **local** environment resolves to `http://mentra-vn.local/...` — a hostname Gmail (and any external mail client) cannot reach, so the image doesn't render in local testing. This is expected on `.local` and will resolve correctly once the site has a real public production domain, but the next task should make this environment-independent: prefer an **email-safe embedded CID image** rather than a remote `<img src>` URL. Prefer a local PNG asset; if only the approved SVG exists, generate an email-safe PNG **derivative** without modifying the original SVG (do not download a new/different logo). Continue using `wp_mail()` for transport; a **scoped PHPMailer hook may be used only to attach/embed the CID image** — do not use it to configure SMTP (WP Mail SMTP owns that, per Phase 7).
-
-## Security requirements carried into the next task (durable — see also CLAUDE.md)
-
-- Referer is not a security boundary on its own.
+- Referer is **not read anywhere** in the forms security path (removed this hotfix).
 - Hidden/readonly/disabled frontend fields are never trusted.
-- Form type is always normalized + whitelisted server-side.
-- The nonce must be bound to the rendered context (type, and for Purchase, product).
-- The Purchase product key must be server-approved (allowlist), never raw client text.
-- Tampering product/type while reusing a nonce issued for a different context must fail.
-- reCAPTCHA v2 Checkbox remains mandatory (never v3/Invisible/Enterprise).
-- Rate limiting remains mandatory.
+- Form type is always normalized + whitelisted server-side, and gated by a nonce scoped to that exact type (and, for Purchase, product) — verified live under a full tamper matrix.
+- The Purchase product key is always server-approved (`PRODUCT_ALLOWLIST`), never raw client text.
+- Tampering product/type while reusing a nonce issued for a different context fails (verified live).
+- reCAPTCHA v2 Checkbox remains mandatory (never v3/Invisible/Enterprise), same pipeline for Purchase as every other type.
+- Rate limiting remains mandatory; Purchase shares Sales' rate-limit bucket (cannot be bypassed by varying product/intent).
 - No raw IP persistence (salted hash only, unchanged since Phase 6).
 - No SMTP credentials in source, docs, or Git — ever.
 
 ## Mail failure policy (durable, applies to Purchase too)
 
-Admin notification is primary. If the admin `wp_mail()` fails → the submission fails (controlled JSON error) → the customer acknowledgement is never attempted. If the admin send succeeds but the customer acknowledgement fails → the submission is still reported successful to the visitor (the business inquiry was received; never tell the visitor it failed because of a secondary, best-effort email). Newsletter remains fully excluded from customer acknowledgement (it is not a business-contact form and does not call `wp_mail()` at all).
+Admin notification is primary. If the admin `wp_mail()` fails → the submission fails (controlled JSON error) → the customer acknowledgement is never attempted. If the admin send succeeds but the customer acknowledgement fails → the submission is still reported successful to the visitor (the business inquiry was received; never tell the visitor it failed because of a secondary, best-effort email). Newsletter remains fully excluded from customer acknowledgement (it is not a business-contact form and does not call `wp_mail()` at all). A CID logo-embedding failure never blocks the textual email from sending either.
 
 ## Current architecture
 
@@ -129,7 +90,7 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 7. **Exactly 6 press items remain static/external**: `wp-content/themes/mentra-vietnam/data/press.php` → `mentra_vn_press_items()`. Never WordPress Posts (verified 0 in `wp_posts`).
 8. **Article canonical URL pattern**: `/tin-tuc/{slug}/` — scoped rewrite rule + `post_type_link` filter in `functions.php`, only for posts with `_mentra_vn_article=1`.
 9. **Legacy article URLs**: `/blogs/blog/{slug}/` 301-redirects to the canonical `/tin-tuc/{slug}/`. `templates/source/blogs/blog/*.html` (16 files) and `blogs.html`/`blog.html` are kept on disk as reference/dormant only.
-10. **Forms backend (Phase 5, PASS; extended by the Forms Hotfix)**: `wp_ajax_mentra_vn_newsletter` (unchanged), `wp_ajax_mentra_vn_contact_ajax` (General/Sales/Support/Partnership/Media), and `wp_ajax_mentra_vn_career_ajax` all route through a shared `send_form_mail()` pipeline in the plugin. All nonce-protected (`mentra_vn_public`). `send_form_mail()` now sends an HTML admin notification plus a best-effort HTML customer acknowledgement (same reference ID), and `contact_ajax()`'s form type is authoritatively resolved server-side from the request Referer (`route_locked_type()`), not a client-submitted field. See `docs/forms-inventory.md`/`docs/phase-5-report.md`, `docs/forms-hotfix-report.md`.
+10. **Forms backend (Phase 5, PASS; extended by the Forms Hotfix and the Final Forms/Purchase/Email Hotfix)**: `wp_ajax_mentra_vn_newsletter` (unchanged, still uses the generic `mentra_vn_public` nonce), `wp_ajax_mentra_vn_contact_ajax` (General/Sales/Support/Partnership/Media/Purchase), and `wp_ajax_mentra_vn_career_ajax` all route through a shared `send_form_mail()` pipeline in the plugin. `contact_ajax()`/`career_ajax()` are protected by a **scoped nonce bound to the client-submitted, whitelisted `form_type`** (and for Sales, `intent`/`mentra_product`) — see `contact_nonce_action()`. `wp_get_referer()` is **not read anywhere** in the plugin. `send_form_mail()` sends an HTML admin notification (logo embedded via CID, see item 21) plus a best-effort HTML customer acknowledgement (same reference ID). See `docs/forms-inventory.md`/`docs/phase-5-report.md`, `docs/forms-hotfix-report.md`.
 11. **Career form backend exists** (Phase 5) — `/tuyen-dung/` now sends real mail via `mentra_vn_career_ajax`, validated against the form's real fields only.
 12. **reCAPTCHA v2 Checkbox is live** (Phase 6) on all seven public forms, admin-configurable at Settings → Mentra Việt Nam (`mentra_vn_recaptcha_site_key`/`_secret_key`). **Currently CONFIGURED on this install** with Google's official public v2 Checkbox test key pair (used for local testing throughout Phases 6/7 and the Forms Hotfix, not a production credential — see `docs/form-security.md` for the no-op-when-unconfigured behavior that applies whenever these are cleared). Server-side rate limiting (WP transients) is likewise live.
 13. **Business-contact forms use a single configurable recipient** via `mentra_vn_contact_email` (Phase 5) — the coded default is `contact@domain.vn`, but this option is **currently set to the owner's personal address** on this install for real-delivery testing (see item below and `docs/forms-hotfix-report.md`) — always read the live option value, never assume the default.
@@ -140,6 +101,7 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 18. **Forms architecture (Phase 5) is CLOSED, PASS.** `docs/forms-inventory.md` is the field-level reference for every form; `docs/phase-5-report.md` has the full test matrix. `/lien-he/`'s `?topic=` query handling was fixed as part of this phase (see item 10 above and the Phase 5 entry in Completed Phases).
 19. **Anti-spam security (Phase 6) is CLOSED, PASS.** `docs/form-security.md` is the architecture reference (fail-closed rules, rate-limit semantics, privacy/IP handling); `docs/phase-6-report.md` has the full test matrix. Real production reCAPTCHA keys still need to be entered by the owner before protection is actually active in production — see item 12 above.
 20. **Mail delivery (Phase 7) is CLOSED, IMPLEMENTATION PASS / DELIVERY CONFIGURATION PENDING.** `docs/mail-configuration.md` is the owner-facing wp-admin setup guide; `docs/phase-7-report.md` has the full audit/test matrix. Real SMTP/API provider selection, credentials, and production DNS (SPF/DKIM/DMARC) are owner actions — see item 14 above.
+21. **Purchase flow (Final Forms/Purchase/Email Hotfix) is CLOSED, COMPLETE.** Sales-only Purchase mode at `/lien-he/?topic=sales&intent=purchase&mentra_product=<key>`, gated by the same nonce-scoping mechanism as every other form type, product resolved only via the server allowlist `Mentra_Vietnam_Core_99::PRODUCT_ALLOWLIST` (`mentra-live`, `mentra-live-charging-cable`). HTML emails now embed the Mentra logo via CID (`mail_with_logo()`, `assets/mentra_logo_email.png`) instead of a remote `get_template_directory_uri()` URL — fixes the local-domain-unreachable-by-Gmail bug. Full detail: `docs/forms-hotfix-report.md` (final section).
 
 ## Current important IDs/data
 
@@ -150,6 +112,9 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 - Press data source: `wp-content/themes/mentra-vietnam/data/press.php` — never query `wp_posts` for press content.
 - Contact-form recipient: WordPress option `mentra_vn_contact_email` (default `contact@domain.vn`), editable at Settings → Mentra Việt Nam — always read via `contact_email()` in the plugin, never hardcode the address. **Currently set to the owner's personal address for real-delivery testing** (set during the Forms Hotfix, DB option only, not in source) — replace with the real production recipient before launch.
 - reCAPTCHA v2 keys: WordPress options `mentra_vn_recaptcha_site_key` (public) / `mentra_vn_recaptcha_secret_key` (server-only, never expose) — editable at Settings → Mentra Việt Nam. **Currently CONFIGURED** on this install with Google's official public v2 Checkbox test key pair (not a production credential; never written to any file, DB option only). Read via `Mentra_Vietnam_Core_99::recaptcha_enabled()`/`recaptcha_site_key()`, or the theme-layer bridge functions `mentra_vn_recaptcha_enabled()`/`mentra_vn_recaptcha_site_key()` — never hardcode or duplicate this check.
+- Purchase product allowlist: `Mentra_Vietnam_Core_99::PRODUCT_ALLOWLIST` (`mentra-live` → "Mentra Live", `mentra-live-charging-cable` → "Infinity Cable cho Mentra Live") — the only source of any Purchase-mode product display name, read via `is_valid_product()`/`product_name()` or the bridge functions `mentra_vn_is_valid_product()`/`mentra_vn_product_name()`. Adding a real, legitimate future product's Purchase CTA means adding a key here first, never trusting a raw query value.
+- Purchase URL query param is **`mentra_product`**, not `product` — `product` collides with WooCommerce's own registered query var and gets redirected away by WordPress core before Mentra's code runs. Do not "simplify" this back to `product` without re-checking that collision.
+- Email-only logo asset: `wp-content/themes/mentra-vietnam/assets/mentra_logo_email.png` — a raster derivative of `mentra_logo.svg` for CID embedding in HTML emails only (`mail_with_logo()`). Not used anywhere on the frontend; the SVG remains the frontend logo. If the source SVG logo is ever redesigned, this PNG must be regenerated to match (it will not update automatically).
 
 ## Current news state (Phase 4 verified)
 
@@ -163,7 +128,7 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 
 - WooCommerce is catalog-data CMS only, forever.
 - Only items with a real, confirmed source product object become WooCommerce products.
-- Purchase CTA text/target fixed: "Liên hệ mua hàng" → `/lien-he/?topic=sales` (about to gain `&intent=purchase&product=<key>` per the Next Task above — the CTA text itself does not change).
+- Purchase CTA text unchanged: "Liên hệ mua hàng". On Mentra Live and Infinity Cable specifically, it now targets `/lien-he/?topic=sales&intent=purchase&mentra_product=<key>` (Purchase mode); every other "Liên hệ mua hàng"/plain `?topic=sales` link sitewide is untouched and still opens the normal Sales form.
 - The 16 articles and 6 press items are permanently separate concepts; press items must never become WordPress Posts.
 - Legal policy body content is not to be translated/rewritten without human review.
 - Brand/product names are never translated.
@@ -175,6 +140,9 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 - Infinity Cable remains its own real product/accessory page (`/products/mentra-live-charging-cable/`) per the current architecture — not folded back into Mentra Live.
 - News remains exactly 16 WordPress Posts + 6 static press items; press items must never become WP Posts.
 - Legal content (Privacy/Terms/Shipping/Refund) still requires Vietnam-specific human review before any body-text change.
+- Purchase mode is still an enquiry, not checkout: no price, no payment, no order/stock reservation state in the Purchase form, its admin email, or its customer acknowledgement.
+- Purchase mode never shows a Company field; every other Sales/contact form keeps it. The two must not be merged.
+- The Purchase product query param stays `mentra_product` (not `product`) — see the collision note under "Current important IDs/data".
 
 ## Known deferred work
 
@@ -204,15 +172,15 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 
 ## Next planned phase
 
-**Not Phase 8.** The immediate next task is the scoped "Final Forms / Purchase / Email Hotfix" documented above (nonce-bound context security, Purchase Sales form + product allowlist, product CTA wiring, Purchase-specific emails, CID email logo). Only after the owner explicitly approves that hotfix as complete should Phase 8 (whatever it turns out to be) begin. Beyond that hotfix, remaining known work is owner/admin configuration, not engineering: WP Mail SMTP provider selection + credentials + From Email (Phase 7, `docs/mail-configuration.md`), real reCAPTCHA production keys (Phase 6, Settings → Mentra Việt Nam), the final production domain to replace the `domain.vn` placeholder, and production DNS (SPF/DKIM/DMARC). No local branch in this lineage (`feature/forms-architecture` → `feature/recaptcha-security` → `feature/mail-delivery` → `fix/forms-captcha-500`) has been pushed to origin yet.
+**Not Phase 8.** The "Final Forms / Purchase / Email Hotfix" (nonce-bound context security, Purchase Sales form + product allowlist, product CTA wiring, Purchase-specific emails, CID email logo) is now **COMPLETE** — see "Final Forms/Purchase/Email Hotfix" above and `docs/forms-hotfix-report.md` (final section) for full detail. Phase 8 (whatever it turns out to be) should only begin once the owner explicitly reviews/approves this hotfix in their own browser and confirms the test emails (logo now visible). Remaining known work beyond that is owner/admin configuration, not engineering: WP Mail SMTP provider selection + credentials + From Email (Phase 7, `docs/mail-configuration.md`), real reCAPTCHA production keys (Phase 6, Settings → Mentra Việt Nam), the final production domain to replace the `domain.vn` placeholder, and production DNS (SPF/DKIM/DMARC). No local branch in this lineage (`feature/forms-architecture` → `feature/recaptcha-security` → `feature/mail-delivery` → `fix/forms-captcha-500`) has been pushed to origin yet.
 
 **DO NOT START PHASE 8 OR ANY NEW PHASE WITHOUT USER/PROJECT-MANAGER INSTRUCTION.**
 
 ## Required reading for next Claude context
 
 1. `CLAUDE.md`
-2. `docs/project-status.md` (this file — has the full current state, the known remaining security issue, and the fully-specified next task; sufficient on its own for most next-task work)
-3. `docs/forms-hotfix-report.md` (most recent detailed report — root causes, fixes, and the full UX/branding/acknowledgement-email extension, both verified live)
+2. `docs/project-status.md` (this file — has the full current state, including the now-COMPLETE Final Forms/Purchase/Email Hotfix; sufficient on its own for most next-task work)
+3. `docs/forms-hotfix-report.md` (most recent detailed report — root causes/fixes, the UX/branding/acknowledgement-email extension, and the final section on nonce security/Purchase flow/CID logo, all verified live)
 
 Only read further if the task genuinely needs a specific historical detail:
 
