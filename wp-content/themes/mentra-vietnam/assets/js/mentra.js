@@ -3,6 +3,162 @@
   const qs=(s,r=document)=>r.querySelector(s), qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const root=document.documentElement;
 
+  // Phase 6: shared reCAPTCHA v2 Checkbox helper used by every protected
+  // form (Newsletter/Contact/Career). Widgets are always rendered
+  // explicitly via grecaptcha.render() - never the implicit data-sitekey
+  // auto-scan - so they work correctly no matter whether the container is
+  // inserted before or after the Google script finishes loading. No-op
+  // everywhere when MENTRA_VN.recaptcha.configured is false (reCAPTCHA not
+  // set up in wp-admin yet), so forms keep working unconfigured.
+  const recaptchaWidgetIds=new WeakMap();
+  function mountRecaptchaWidget(container){
+    if(recaptchaWidgetIds.has(container)) return recaptchaWidgetIds.get(container);
+    if(typeof grecaptcha==='undefined'||!grecaptcha.render) return null;
+    const id=grecaptcha.render(container,{sitekey:container.getAttribute('data-sitekey')});
+    recaptchaWidgetIds.set(container,id);
+    return id;
+  }
+  window.mentraVnRecaptchaOnLoad=function(){
+    qsa('.g-recaptcha[data-sitekey]').forEach(mountRecaptchaWidget);
+  };
+  function ensureRecaptchaWidget(form){
+    if(!MENTRA_VN.recaptcha||!MENTRA_VN.recaptcha.configured||!MENTRA_VN.recaptcha.siteKey) return null;
+    let container=qs('.g-recaptcha',form);
+    if(!container){
+      container=document.createElement('div');
+      container.className='g-recaptcha mentra-recaptcha';
+      container.setAttribute('data-sitekey',MENTRA_VN.recaptcha.siteKey);
+      if(form.getAttribute('data-mentra-newsletter')==='1'){
+        const inputRow=qs('.flex.flex-col',form);
+        if(inputRow) inputRow.parentNode.insertBefore(container,inputRow.nextSibling); else form.appendChild(container);
+      }else{
+        const submit=qs('.career-submit,button[type="submit"]',form);
+        if(submit) submit.parentNode.insertBefore(container,submit); else form.appendChild(container);
+      }
+    }
+    mountRecaptchaWidget(container);
+    return container;
+  }
+  function getRecaptchaResponse(form){
+    const container=qs('.g-recaptcha',form);
+    const id=container&&recaptchaWidgetIds.get(container);
+    if(typeof grecaptcha==='undefined'||id===undefined||id===null) return '';
+    try{ return grecaptcha.getResponse(id)||''; }catch(_){ return ''; }
+  }
+  function resetRecaptcha(form){
+    const container=qs('.g-recaptcha',form);
+    const id=container&&recaptchaWidgetIds.get(container);
+    if(typeof grecaptcha!=='undefined'&&id!==undefined&&id!==null){ try{ grecaptcha.reset(id); }catch(_){} }
+  }
+
+  // Forms UX hotfix: shared branding/locked-context/success-state helpers
+  // for the Contact and Career forms only - Newsletter is not a
+  // business-contact form and is intentionally left unchanged.
+  function addFormHeader(form,heading){
+    if(qs(':scope > .mentra-form-header',form.parentNode)) return;
+    const header=document.createElement('div');
+    header.className='mentra-form-header';
+    header.innerHTML='<img src="'+MENTRA_VN.logo+'" alt="Mentra" class="mentra-form-logo"><h2 class="mentra-form-heading"></h2>';
+    qs('.mentra-form-heading',header).textContent=heading;
+    form.parentNode.insertBefore(header,form);
+  }
+  function addLockedType(form,label){
+    const select=qs('#contact-subject',form);
+    if(!select||!label) return;
+    const wrapper=select.parentNode;
+    wrapper.innerHTML='<label class="mentra-locked-type-label">Loại yêu cầu</label><div class="mentra-locked-type" aria-readonly="true"></div>';
+    qs('.mentra-locked-type',wrapper).textContent=label;
+  }
+  // Final forms hotfix: Purchase mode reuses the same #contact-company
+  // wrapper slot to show a non-editable "Sản phẩm" badge (server-approved
+  // product name only - never raw query text) instead of the free-text
+  // Company field, which Purchase mode does not collect. Reuses the
+  // already-styled .mentra-locked-type class, same as addLockedType().
+  function addLockedProduct(form,productName){
+    const company=qs('#contact-company',form);
+    if(!company||!productName) return null;
+    const wrapper=company.parentNode;
+    wrapper.innerHTML='<label class="mentra-locked-type-label">Sản phẩm</label><div class="mentra-locked-type" aria-readonly="true"></div>';
+    qs('.mentra-locked-type',wrapper).textContent=productName+' 🔒';
+    return wrapper;
+  }
+  // Clones an existing input's classes/inline style so a JS-injected field
+  // matches the static source markup exactly, without duplicating its long
+  // utility-class string here.
+  function buildPurchaseField(refInput,id,name,label,type){
+    const wrap=document.createElement('div');
+    const lbl=document.createElement('label');
+    lbl.className='block text-sm font-semibold mb-2';
+    lbl.style.color='var(--ink-primary)';
+    lbl.setAttribute('for',id);
+    lbl.textContent=label;
+    const input=document.createElement('input');
+    input.className=refInput.className;
+    const refStyle=refInput.getAttribute('style');
+    if(refStyle) input.setAttribute('style',refStyle);
+    input.type=type;
+    input.id=id;
+    input.name=name;
+    input.required=true;
+    wrap.appendChild(lbl);
+    wrap.appendChild(input);
+    return {wrap:wrap,input:input};
+  }
+  // Injects the Phone + Address fields Purchase mode needs, immediately
+  // before the shared #contact-message field. Idempotent (returns the
+  // existing fields if already injected, e.g. a second initContact() pass).
+  function addPurchaseFields(form){
+    const existingPhone=qs('#mentra-purchase-phone',form);
+    const existingAddress=qs('#mentra-purchase-address',form);
+    if(existingPhone&&existingAddress) return {phone:existingPhone,address:existingAddress};
+    const refInput=qs('#contact-name',form);
+    const message=qs('#contact-message',form);
+    const messageWrap=message?message.parentNode:null;
+    if(!refInput||!messageWrap||!messageWrap.parentNode) return null;
+    const grid=document.createElement('div');
+    grid.className='grid sm:grid-cols-2 gap-5';
+    const phoneField=buildPurchaseField(refInput,'mentra-purchase-phone','phone','Số điện thoại','tel');
+    const addressField=buildPurchaseField(refInput,'mentra-purchase-address','address','Địa chỉ','text');
+    grid.appendChild(phoneField.wrap);
+    grid.appendChild(addressField.wrap);
+    messageWrap.parentNode.insertBefore(grid,messageWrap);
+    return {phone:phoneField.input,address:addressField.input};
+  }
+  function addFormError(form){
+    let el=qs('.mentra-form-error',form);
+    if(!el){el=document.createElement('p');el.className='mentra-form-error';el.setAttribute('role','alert');form.appendChild(el);}
+    return el;
+  }
+  function addSuccessCard(form,isPurchase,productName){
+    const next=form.nextElementSibling;
+    if(next&&next.classList&&next.classList.contains('mentra-form-success')) return next;
+    const card=document.createElement('div');
+    card.className='mentra-form-success';
+    card.setAttribute('tabindex','-1');
+    card.setAttribute('role','status');
+    card.setAttribute('aria-live','polite');
+    card.hidden=true;
+    const heading=isPurchase?'Gửi yêu cầu thành công':'Gửi thành công';
+    const message=(isPurchase&&productName)
+      ? ('Cảm ơn bạn đã quan tâm đến '+productName+'. Chúng tôi đã nhận được yêu cầu mua hàng của bạn và sẽ liên hệ trong thời gian sớm nhất.')
+      : 'Cảm ơn bạn đã liên hệ với Mentra. Chúng tôi đã nhận được thông tin của bạn và sẽ phản hồi trong thời gian sớm nhất.';
+    card.innerHTML=
+      '<div class="mentra-form-success-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'+
+      '<h2 class="mentra-form-success-heading"></h2>'+
+      '<p class="mentra-form-success-message"></p>'+
+      '<a class="btn-base btn-primary mentra-form-success-cta" href="'+MENTRA_VN.home+'">Về trang chủ</a>';
+    qs('.mentra-form-success-heading',card).textContent=heading;
+    qs('.mentra-form-success-message',card).textContent=message;
+    form.parentNode.insertBefore(card,form.nextSibling);
+    return card;
+  }
+  function showFormSuccess(form){
+    const card=addSuccessCard(form);
+    form.hidden=true;
+    card.hidden=false;
+    card.focus();
+  }
+
   function initHeader(){
     const header=qs('.site-header'); if(!header) return;
     const mobileButton=qs('button[aria-label="Mở menu"],button[aria-label="Open menu"]',header);
@@ -22,21 +178,115 @@
       menu.className='mentra-mobile-menu';
       menu.setAttribute('aria-hidden','true');
       menu.innerHTML=`
-        <a href="${MENTRA_VN.home}mentra-os/">MentraOS <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}mentra-live/">Kính Mentra Live <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}ung-dung/">Ứng dụng <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}nha-phat-trien/">Nhà phát triển <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}ve-mentra/">Về Mentra <span aria-hidden="true">→</span></a>
-        <a href="${MENTRA_VN.home}ho-tro/">Hỗ trợ <span aria-hidden="true">→</span></a>
-        <a class="mobile-menu-small" href="${MENTRA_VN.home}lien-he/">Liên hệ</a>
-        <a class="mobile-menu-small" href="${MENTRA_VN.home}tin-tuc/">Tin tức</a>`;
+        <div class="mentra-mobile-menu-overlay"></div>
+        <div class="mentra-mobile-menu-drawer">
+          <div class="mentra-mobile-menu-inner">
+            <div class="mentra-mobile-menu-header">
+              <button class="mentra-mobile-menu-close" aria-label="Đóng menu">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5 5l10 10M15 5L5 15" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="mentra-mobile-menu-body">
+              <nav class="mentra-mobile-menu-nav" aria-label="Điều hướng menu di động">
+                <a href="${MENTRA_VN.home}" class="mentra-mobile-menu-item">Trang chủ</a>
+                
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>OS</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <a href="${MENTRA_VN.home}mentra-os/">MentraOS</a>
+                    <a href="${MENTRA_VN.home}tai-ung-dung/">Tải ứng dụng</a>
+                    <a href="https://console.mentraglass.com/" target="_blank" rel="noopener noreferrer" class="external-link"><span>Cổng nhà phát triển</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                    <a href="https://github.com/Mentra-Community/MentraOS" target="_blank" rel="noopener noreferrer" class="external-link"><span>GitHub</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                  </div>
+                </div>
+
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>Kính</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <div class="mentra-mobile-menu-label">Sản phẩm</div>
+                    <a href="${MENTRA_VN.home}mentra-live/">Kính Mentra Live</a>
+                    <div class="mentra-mobile-menu-label">Phụ kiện</div>
+                    <a href="${MENTRA_VN.home}prescriptions/">Tròng kính theo độ</a>
+                    <a href="${MENTRA_VN.home}products/mentra-live-charging-cable/">Cáp sạc Infinity</a>
+                    <div class="mentra-mobile-menu-label">Kính được hỗ trợ</div>
+                    <a href="${MENTRA_VN.home}even-realities/">Even Realities G1 & G2</a>
+                    <a href="${MENTRA_VN.home}nimo/">NIMO</a>
+                  </div>
+                </div>
+
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>Nhà phát triển</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <a href="${MENTRA_VN.home}nha-phat-trien/">Nhà phát triển</a>
+                    <a href="https://console.mentraglass.com/" target="_blank" rel="noopener noreferrer" class="external-link"><span>Bảng điều khiển</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                    <a href="https://docs.mentraglass.com/" target="_blank" rel="noopener noreferrer" class="external-link"><span>Tài liệu hướng dẫn</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                    <a href="https://github.com/Mentra-Community/MentraOS" target="_blank" rel="noopener noreferrer" class="external-link"><span>GitHub</span> <svg class="external-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>
+                  </div>
+                </div>
+
+                <div class="mentra-mobile-menu-group">
+                  <button class="mentra-mobile-menu-trigger" aria-expanded="false">
+                    <span>Công ty</span>
+                    <svg class="mentra-mobile-menu-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </button>
+                  <div class="mentra-mobile-menu-sub" style="display: none;">
+                    <a href="${MENTRA_VN.home}ve-mentra/">Về Mentra</a>
+                    <a href="${MENTRA_VN.home}tin-tuc/">Phòng tin tức</a>
+                    <a href="${MENTRA_VN.home}tin-tuc/">Blog</a>
+                    <a href="${MENTRA_VN.home}tuyen-dung/">Tuyển dụng</a>
+                    <a href="${MENTRA_VN.home}mang-xa-hoi/">Mạng xã hội</a>
+                    <a href="${MENTRA_VN.home}discord/">Discord</a>
+                    <a href="${MENTRA_VN.home}lien-he/">Liên hệ</a>
+                  </div>
+                </div>
+              </nav>
+            </div>
+            <div class="mentra-mobile-menu-footer">
+              <a href="${MENTRA_VN.home}mentra-live/" class="btn-base btn-primary w-full text-center">Đặt mua Mentra Live</a>
+            </div>
+          </div>
+        </div>`;
       document.body.appendChild(menu);
-      const close=()=>{menu.classList.remove('is-open');menu.setAttribute('aria-hidden','true');mobileButton.setAttribute('aria-expanded','false');document.body.classList.remove('mentra-menu-open');};
+      const close=()=>{
+        menu.classList.remove('is-open');
+        menu.setAttribute('aria-hidden','true');
+        mobileButton.setAttribute('aria-expanded','false');
+        document.body.classList.remove('mentra-menu-open');
+      };
       mobileButton.setAttribute('aria-expanded','false');
       mobileButton.addEventListener('click',()=>{
         const open=!menu.classList.contains('is-open');
-        menu.classList.toggle('is-open',open);menu.setAttribute('aria-hidden',String(!open));mobileButton.setAttribute('aria-expanded',String(open));document.body.classList.toggle('mentra-menu-open',open);
-        qsa('span',mobileButton).forEach((s,i)=>{ if(open){s.style.backgroundColor='var(--ink-primary)'; if(i===0){s.style.transform='translateY(7px) rotate(45deg)'} if(i===1){s.style.opacity='0'} if(i===2){s.style.width='100%';s.style.transform='translateY(-7px) rotate(-45deg)'}} else {s.style.transform='';s.style.opacity='';s.style.width='';} });
+        if(open){
+          menu.classList.add('is-open');
+          menu.setAttribute('aria-hidden','false');
+          mobileButton.setAttribute('aria-expanded','true');
+          document.body.classList.add('mentra-menu-open');
+        }else{
+          close();
+        }
+      });
+      const closeBtn=qs('.mentra-mobile-menu-close',menu);
+      const overlay=qs('.mentra-mobile-menu-overlay',menu);
+      if(closeBtn) closeBtn.addEventListener('click',close);
+      if(overlay) overlay.addEventListener('click',close);
+      qsa('.mentra-mobile-menu-trigger',menu).forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const group=btn.closest('.mentra-mobile-menu-group');
+          const open=btn.getAttribute('aria-expanded')==='true';
+          btn.setAttribute('aria-expanded',String(!open));
+          if(group) group.classList.toggle('is-open',!open);
+        });
       });
       menu.addEventListener('click',e=>{if(e.target.closest('a')) close();});
       window.addEventListener('keydown',e=>{if(e.key==='Escape') close();});
@@ -323,7 +573,7 @@
       panel.innerHTML=items.map((item,index)=>{
         const qid='home-faq-btn-'+slug+'-'+index;
         const aid='home-faq-answer-'+slug+'-'+index;
-        return `<div class="home-faq-item${index===0?' is-open':''}"><button aria-controls="${aid}" aria-expanded="${index===0?'true':'false'}" class="home-faq-question" id="${qid}" type="button"><span>${item[0]}</span><span aria-hidden="true" class="home-faq-toggle">${index===0?'−':'+'}</span></button><div aria-labelledby="${qid}" class="home-faq-answer" id="${aid}" role="region"><p>${item[1]}</p></div></div>`;
+        return `<div class="home-faq-item${index===0?' is-open':''}"><button aria-controls="${aid}" aria-expanded="${index===0?'true':'false'}" class="home-faq-question" id="${qid}" type="button"><span>${item[0]}</span><span aria-hidden="true" class="home-faq-toggle">${index===0?'-':'+'}</span></button><div aria-labelledby="${qid}" class="home-faq-answer" id="${aid}" role="region"><p>${item[1]}</p></div></div>`;
       }).join('');
       bindQuestions();
     };
@@ -335,7 +585,7 @@
         btn.addEventListener('click',()=>{
           const open=item.classList.toggle('is-open');
           btn.setAttribute('aria-expanded',String(open));
-          if(toggle) toggle.textContent=open?'−':'+';
+          if(toggle) toggle.textContent=open?'-':'+';
         });
       });
     };
@@ -387,7 +637,7 @@
         if (!isOpen) {
           item.classList.add('is-open');
           btn.setAttribute('aria-expanded', 'true');
-          if (toggle) toggle.textContent = '−';
+          if (toggle) toggle.textContent = '-';
         }
       });
     });
@@ -424,12 +674,13 @@
   function initNewsletter(){
     qsa('form[data-mentra-newsletter="1"]').forEach(form=>{
       const email=qs('input[type="email"]',form), btn=qs('button[type="submit"]',form); if(!email||!btn) return;
+      ensureRecaptchaWidget(form);
       const sync=()=>btn.disabled=!email.value.trim()||!email.checkValidity(); sync(); email.addEventListener('input',sync);
       form.addEventListener('submit',async e=>{
         e.preventDefault(); if(!email.checkValidity()) return email.reportValidity();
         btn.disabled=true; const old=btn.innerHTML; btn.textContent='Đang gửi…';
-        try{const body=new URLSearchParams({action:'mentra_vn_newsletter',nonce:MENTRA_VN.nonce,email:email.value.trim()}); const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body}); const j=await r.json(); btn.textContent=j.success?'Đã đăng ký':'Thử lại'; if(j.success) email.value='';}
-        catch(_){btn.textContent='Thử lại';}
+        try{const body=new URLSearchParams({action:'mentra_vn_newsletter',nonce:MENTRA_VN.nonce,email:email.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)}); const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body}); const j=await r.json(); btn.textContent=j.success?'Đã đăng ký':'Thử lại'; resetRecaptcha(form); if(j.success) email.value='';}
+        catch(_){btn.textContent='Thử lại';resetRecaptcha(form);}
         setTimeout(()=>{btn.innerHTML=old;sync()},1800);
       });
     });
@@ -445,25 +696,102 @@
   function initContact(){
     qsa('form[data-mentra-contact="1"]').forEach(form=>{
       const submit=qs('button[type="submit"]',form);
+      const isPurchase=!!(MENTRA_VN.formIntent==='purchase'&&MENTRA_VN.formProduct&&MENTRA_VN.formProductName);
+      addFormHeader(form,MENTRA_VN.contactTypeHeading||'Liên hệ Mentra');
+      let purchaseFields=null;
+      if(isPurchase){
+        addLockedProduct(form,MENTRA_VN.formProductName);
+        purchaseFields=addPurchaseFields(form);
+        const msgLabel=qs('label[for="contact-message"]',form);
+        if(msgLabel) msgLabel.textContent='Nội dung / Ghi chú';
+        if(submit) submit.textContent='Gửi yêu cầu mua hàng';
+      }else if(MENTRA_VN.contactType){
+        addLockedType(form,MENTRA_VN.contactTypeLabel);
+      }
+      const errorEl=addFormError(form);
+      addSuccessCard(form,isPurchase,MENTRA_VN.formProductName);
+      ensureRecaptchaWidget(form);
       form.addEventListener('submit',async e=>{
         e.preventDefault();
         const name=qs('#contact-name,input[name="name"]',form);
         const email=qs('#contact-email,input[type="email"]',form);
-        const company=qs('#contact-company,input[name="company"]',form);
-        const subject=qs('#contact-subject,select[name="subject"],select[name="topic"]',form);
         const message=qs('#contact-message,textarea',form);
+        const company=isPurchase?null:qs('#contact-company,input[name="company"]',form);
+        const phone=isPurchase&&purchaseFields?purchaseFields.phone:null;
+        const address=isPurchase&&purchaseFields?purchaseFields.address:null;
         if(!name||!email||!message||!name.value.trim()||!email.checkValidity()||!message.value.trim()){
           if(email && !email.checkValidity()) email.reportValidity();
           return;
         }
+        if(isPurchase&&(!phone||!phone.value.trim()||!address||!address.value.trim())){
+          if(phone && !phone.value.trim()) phone.reportValidity();
+          else if(address && !address.value.trim()) address.reportValidity();
+          return;
+        }
+        errorEl.textContent='';
         const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
         try{
-          const body=new URLSearchParams({action:'mentra_vn_contact_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),company:company?company.value.trim():'',subject:subject?subject.value:'Liên hệ',message:message.value.trim()});
+          const params={
+            action:'mentra_vn_contact_ajax',
+            nonce:MENTRA_VN.formNonce||'',
+            form_type:MENTRA_VN.formType||'',
+            intent:MENTRA_VN.formIntent||'',
+            mentra_product:MENTRA_VN.formProduct||'',
+            name:name.value.trim(),
+            email:email.value.trim(),
+            message:message.value.trim(),
+            g_recaptcha_response:getRecaptchaResponse(form)
+          };
+          if(isPurchase){ params.phone=phone.value.trim(); params.address=address.value.trim(); }
+          else{ params.company=company?company.value.trim():''; }
+          const body=new URLSearchParams(params);
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
-          if(submit) submit.textContent=j.success?'Đã gửi':'Gửi lại';
-          if(j.success){form.reset();}
-        }catch(_){if(submit)submit.textContent='Gửi lại';}
+          resetRecaptcha(form);
+          if(j.success){ showFormSuccess(form); return; }
+          if(submit) submit.textContent=isPurchase?'Gửi lại yêu cầu':'Gửi lại';
+          errorEl.textContent=(j&&j.data&&j.data.message)?j.data.message:'Có lỗi xảy ra, vui lòng thử lại.';
+        }catch(_){if(submit)submit.textContent='Gửi lại';errorEl.textContent='Có lỗi xảy ra, vui lòng thử lại.';resetRecaptcha(form);}
+        setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
+      });
+    });
+  }
+
+
+  function initCareer(){
+    qsa('form[data-career-form]').forEach(form=>{
+      const submit=qs('.career-submit',form)||qs('button[type="submit"]',form);
+      let status=qs('.career-form-status',form);
+      if(!status){status=document.createElement('p');status.className='career-form-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');form.appendChild(status);}
+      addFormHeader(form,'Ứng tuyển tại Mentra');
+      addSuccessCard(form);
+      ensureRecaptchaWidget(form);
+      form.addEventListener('submit',async e=>{
+        e.preventDefault();
+        const name=qs('#career-name',form);
+        const email=qs('#career-email',form);
+        const expertise=qs('#career-expertise',form);
+        const position=qs('#career-position',form);
+        const portfolio=qs('#career-portfolio',form);
+        const why=qs('#career-why',form);
+        if(!name||!email||!expertise||!why||!name.value.trim()||!email.checkValidity()||!expertise.value||!why.value.trim()){
+          if(email && !email.checkValidity()) email.reportValidity();
+          else if(expertise && !expertise.value) expertise.reportValidity();
+          else if(why && !why.value.trim()) why.reportValidity();
+          return;
+        }
+        const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
+        status.textContent=''; status.classList.remove('is-error','is-success');
+        try{
+          const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.formNonce||'',form_type:MENTRA_VN.formType||'',name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
+          const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
+          const j=await r.json();
+          resetRecaptcha(form);
+          if(j.success){ showFormSuccess(form); return; }
+          if(submit) submit.textContent='Gửi lại';
+          status.textContent=(j&&j.data&&j.data.message)?j.data.message:'Có lỗi xảy ra, vui lòng thử lại.';
+          status.classList.add('is-error');
+        }catch(_){if(submit)submit.textContent='Gửi lại';status.textContent='Có lỗi xảy ra, vui lòng thử lại.';status.classList.add('is-error');resetRecaptcha(form);}
         setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
       });
     });
@@ -653,5 +981,12 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initCaptionsFAQ();initRxFAQ();initNewsletter();initContact();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
+  // Each initializer runs in isolation: one throwing (e.g. a DOM-structure
+  // assumption that doesn't hold on some page) must never prevent the
+  // unrelated initializers listed after it from running - see the Forms
+  // hotfix report for the incident this directly guards against (Newsletter
+  // widget injection throwing silently disabled Contact/Career AJAX wiring
+  // sitewide). Errors are still logged, not swallowed.
+  const runInit=fn=>{try{fn();}catch(e){if(window.console&&console.error) console.error('mentra.js init failed:',fn.name||'(anonymous)',e);}};
+  document.addEventListener('DOMContentLoaded',()=>{[initHeader,initDesktopMegaMenu,initHeroVideo,initMentraLiveIntro,initB2BVideos,initFAQ,initCaptionsFAQ,initRxFAQ,initNewsletter,initContact,initCareer,initReveal,initHydratedTextFallbacks,initExternalSourceArtifacts,initNewsroomFilters,initPdpAccordion,initSocialPlatformHover,initProductGallery].forEach(runInit);});
 })();

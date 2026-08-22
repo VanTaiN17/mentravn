@@ -89,19 +89,179 @@ img,svg,video{max-width:100%}
 .site-header{backdrop-filter:saturate(140%) blur(0);-webkit-backdrop-filter:saturate(140%) blur(0)}
 .site-header--filled,.site-header.is-scrolled{background:rgba(250,250,247,.94)!important;border-bottom-color:var(--border-subtle)!important;box-shadow:0 1px 0 rgba(15,23,42,.03)!important;backdrop-filter:saturate(160%) blur(16px);-webkit-backdrop-filter:saturate(160%) blur(16px)}
 .site-header--filled .desktop-nav-rail,.site-header.is-scrolled .desktop-nav-rail{color:var(--ink-primary)!important}
-.site-header--transparent:not(.is-scrolled) .logo-for-light{opacity:0;position:absolute;pointer-events:none}
-.site-header--transparent:not(.is-scrolled) .logo-for-dark{opacity:1}
-.site-header--filled .logo-for-light,.site-header.is-scrolled .logo-for-light{opacity:1;position:static}
-.site-header--filled .logo-for-dark,.site-header.is-scrolled .logo-for-dark{opacity:0;position:absolute;pointer-events:none}
 .site-header .nav-link:hover{background:rgba(255,255,255,.13)!important}
 .site-header--filled .nav-link:hover,.site-header.is-scrolled .nav-link:hover{background:rgba(15,23,42,.055)!important}
 .site-header.is-scrolled .lg\:hidden button span,.site-header--filled .lg\:hidden button span{background-color:var(--ink-primary)!important}
 .desktop-nav-zone{isolation:isolate}
 .desktop-nav-trigger{white-space:nowrap}
-.mentra-mobile-menu{position:fixed;inset:0;z-index:49;display:flex;flex-direction:column;background:var(--surface-0);padding:calc(var(--height-nav) + 44px) var(--container-px) 40px;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px);transition:opacity .22s ease,transform .22s ease,visibility .22s}
-.mentra-mobile-menu.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:none}
-.mentra-mobile-menu a{display:flex;align-items:center;justify-content:space-between;min-height:58px;border-bottom:1px solid var(--border-subtle);font-family:var(--font-display);font-size:27px;font-weight:600;letter-spacing:-.025em}
-.mentra-mobile-menu .mobile-menu-small{font-size:15px;min-height:48px;font-weight:500;color:var(--ink-secondary)}
+.mentra-mobile-menu {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100 !important;
+  display: flex !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), visibility 300ms !important;
+}
+.mentra-mobile-menu.is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+.mentra-mobile-menu-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.mentra-mobile-menu-drawer {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 85% !important;
+  max-width: 360px !important;
+  background-color: var(--surface-0) !important;
+  transform: translateX(-100%) !important;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms !important;
+  box-shadow: none !important;
+}
+.mentra-mobile-menu.is-open .mentra-mobile-menu-drawer {
+  transform: translateX(0) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.mentra-mobile-menu-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  padding-left: var(--container-px) !important;
+  padding-right: var(--container-px) !important;
+  padding-top: max(14px, env(safe-area-inset-top, 14px)) !important;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+}
+.mentra-mobile-menu-header {
+  display: flex !important;
+  align-items: center !important;
+  min-height: var(--height-nav) !important;
+  flex-shrink: 0 !important;
+}
+.mentra-mobile-menu-close {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 9999px !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease !important;
+  color: var(--brand) !important;
+}
+.mentra-mobile-menu-close:hover {
+  background-color: var(--surface-2) !important;
+}
+.mentra-mobile-menu-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding-bottom: 24px !important;
+  margin-top: 14px !important;
+}
+.mentra-mobile-menu-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+.mentra-mobile-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--ink-primary) !important;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  text-decoration: none !important;
+}
+.mentra-mobile-menu-group {
+  display: flex !important;
+  flex-direction: column !important;
+}
+.mentra-mobile-menu-trigger {
+  display: flex !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--ink-primary) !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  text-align: left !important;
+}
+.mentra-mobile-menu-arrow {
+  transition: transform 200ms ease !important;
+  color: var(--ink-secondary) !important;
+}
+.mentra-mobile-menu-trigger[aria-expanded="true"] .mentra-mobile-menu-arrow {
+  transform: rotate(180deg) !important;
+}
+.mentra-mobile-menu-sub {
+  display: none !important;
+  flex-direction: column !important;
+  padding-left: 14px !important;
+  border-left: 1px solid var(--border-subtle) !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  gap: 4px !important;
+}
+.mentra-mobile-menu-group.is-open .mentra-mobile-menu-sub {
+  display: flex !important;
+}
+.mentra-mobile-menu-sub a {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 36px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: var(--ink-secondary) !important;
+  text-decoration: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+.mentra-mobile-menu-sub a:hover {
+  color: var(--brand-text) !important;
+}
+.mentra-mobile-menu-sub a.external-link {
+  justify-content: flex-start !important;
+  gap: 6px !important;
+}
+.mentra-mobile-menu-sub a .external-arrow {
+  opacity: 0.6 !important;
+}
+.mentra-mobile-menu-label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--ink-tertiary) !important;
+  padding-top: 12px !important;
+  padding-bottom: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+.mentra-mobile-menu-footer {
+  flex-shrink: 0 !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  padding-top: 12px !important;
+  background-color: var(--surface-0) !important;
+}
 body.mentra-menu-open{overflow:hidden}
 
 /* Home hero */
@@ -204,7 +364,6 @@ body.mentra-menu-open{overflow:hidden}
 .home-faq-answer{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s ease,opacity .2s ease}
 .home-faq-answer>*{overflow:hidden}
 .home-faq-item.is-open .home-faq-answer{grid-template-rows:1fr;opacity:1}
-.home-faq-item.is-open .home-faq-toggle{transform:rotate(45deg)}
 .home-faq-item.is-open .home-faq-answer>div,.home-faq-item.is-open .home-faq-answer>p{padding-bottom:22px}
 @media(max-width:767px){.home-faq-layout{grid-template-columns:1fr;gap:22px}.home-faq-tabs{position:static;flex-direction:row;overflow-x:auto;margin-inline:calc(-1 * var(--container-px));padding-inline:var(--container-px);padding-bottom:4px}.home-faq-tab{width:auto;white-space:nowrap;border:1px solid var(--border-subtle)}}
 
@@ -440,8 +599,6 @@ body.mentra-menu-open{overflow:hidden}
 .mentra-desktop-menu__external{width:15px;height:15px;flex:0 0 15px;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .site-header--transparent:not(.is-scrolled).mentra-nav-open,.site-header.mentra-nav-open{background:#fafaf7!important;border-bottom-color:rgba(17,21,18,.055)!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .site-header--transparent:not(.is-scrolled).mentra-nav-open .desktop-nav-rail,.site-header.mentra-nav-open .desktop-nav-rail{color:#111512!important}
-.site-header--transparent:not(.is-scrolled).mentra-nav-open .logo-for-light{opacity:1!important;position:static!important;pointer-events:auto!important}
-.site-header--transparent:not(.is-scrolled).mentra-nav-open .logo-for-dark{opacity:0!important;position:absolute!important;pointer-events:none!important}
 .site-header.mentra-nav-open .desktop-nav-trigger:hover,.site-header.mentra-nav-open .desktop-nav-trigger.is-active{background:transparent!important}
 .site-header.mentra-nav-open .desktop-nav-trigger.is-active{color:var(--brand-text)!important}
 @media(max-width:1023px){.mentra-desktop-menu,.mentra-nav-scrim{display:none!important}}
@@ -463,15 +620,15 @@ body.mentra-menu-open{overflow:hidden}
   .home-b2b-video-element{height:100%!important;min-height:0!important}
   .home-b2b-video-element video{display:block;width:100%!important;height:100%!important;object-fit:cover!important}
 
-  /* The live mobile layout places the economy chart to the right of the editorial copy. */
-  .home-work-editorial{display:grid!important;grid-template-columns:minmax(0,1fr) 82px!important;column-gap:14px!important;row-gap:8px!important;align-items:start!important}
-  .home-work-editorial-chart{grid-column:2!important;grid-row:1/span 8!important;margin:0!important;align-self:start!important}
-  .home-work-editorial-chart>div{max-width:82px!important;margin:0!important}
-  .home-work-editorial-chart svg{width:82px!important;height:82px!important;max-width:82px!important}
-  .home-work-editorial-chart p{margin-top:5px!important;font-size:7px!important;line-height:1.15!important;letter-spacing:.05em!important}
-  .home-work-editorial>p,.home-work-editorial>div:not(.home-work-editorial-chart){grid-column:1!important;margin:0 0 7px!important}
-  .home-work-editorial>div.flex{justify-content:flex-start!important;padding-top:5px!important}
-  .home-work-editorial .btn-base{min-height:34px!important;padding:0 11px!important;font-size:10px!important}
+  /* The live mobile layout stacks the economy chart on top at full size. */
+  .home-work-editorial{display:flex!important;flex-direction:column!important;gap:24px!important}
+  .home-work-editorial-chart{order:-1!important;margin:0 auto!important;width:100%!important;display:flex!important;justify-content:center!important;align-self:stretch!important}
+  .home-work-editorial-chart>div{max-width:420px!important;width:100%!important;margin:0 auto!important;display:flex!important;flex-direction:column!important}
+  .home-work-editorial-chart svg{width:100%!important;height:auto!important;max-width:420px!important}
+  .home-work-editorial-chart p{margin-top:12px!important;font-size:13px!important;line-height:1.5!important;letter-spacing:0.15em!important;text-align:center!important;text-transform:uppercase!important;color:var(--ink-tertiary)!important;font-weight:600!important}
+  .home-work-editorial>p,.home-work-editorial>div:not(.home-work-editorial-chart){margin:0 0 12px 0!important}
+  .home-work-editorial>div.flex{justify-content:center!important;padding-top:10px!important}
+  .home-work-editorial .btn-base{min-height:44px!important;padding:0 20px!important;font-size:15px!important}
 
   /* Backer strip on the original is a slim logo rail on mobile. */
   .home-backed-marquee-section{padding-top:22px!important;padding-bottom:22px!important}
@@ -599,41 +756,7 @@ body.mentra-menu-open{overflow:hidden}
 .home-work-editorial-chart{grid-column:2;grid-row:1/span 6;align-self:start}
 .home-work-editorial>p,.home-work-editorial>div:not(.home-work-editorial-chart){grid-column:1;margin:0}
 
-/* Backed-by rail: the previous absolute wrapper removed the marquee from document flow
-   and the dark-invert helpers turned local full-colour logos white. */
-.home-backed-marquee-fade{
-  position:relative!important;
-  inset:auto!important;
-  z-index:auto!important;
-  background:none!important;
-  overflow:hidden;
-}
-.home-backed-marquee-fade::before,.home-backed-marquee-fade::after{
-  content:"";
-  position:absolute;
-  top:0;
-  bottom:0;
-  width:72px;
-  z-index:3;
-  pointer-events:none;
-}
-.home-backed-marquee-fade::before{left:0;background:linear-gradient(90deg,var(--surface-2),rgba(233,235,230,0))}
-.home-backed-marquee-fade::after{right:0;background:linear-gradient(270deg,var(--surface-2),rgba(233,235,230,0))}
-.home-backed-marquee-section .home-backer-logo-item img{
-  filter:none!important;
-  opacity:1!important;
-  visibility:visible!important;
-  mix-blend-mode:normal!important;
-}
-.home-backed-marquee-section .home-backer-logo-item{
-  min-width:252px;
-  height:104px;
-  border-radius:20px;
-  padding:20px 26px;
-  gap:12px;
-}
-.home-backed-marquee-section .home-backer-logo-item img{max-height:38px;max-width:142px}
-.home-backed-marquee-section .home-backer-logo-item span{font-size:13px!important;color:var(--ink-tertiary)!important}
+/* Backed-by rail styling refactored globally at the end of the file. */
 
 /* Comparison table: keep real table layout. display:grid on <table> collapsed all cells
    into the right-hand side and separated glasses from their columns. */
@@ -731,8 +854,8 @@ body.mentra-menu-open{overflow:hidden}
   .home-partner-card .home-partner-logo{max-height:32px!important;max-width:120px!important}
   .home-partner-card .home-partner-name{font-size:13px!important}
 
-  .home-work-editorial{display:grid!important;grid-template-columns:minmax(0,1fr) 82px!important;column-gap:14px!important;row-gap:8px!important}
-  .home-work-editorial-chart{grid-column:2!important;grid-row:1/span 8!important}
+  .home-work-editorial{display:flex!important;flex-direction:column!important;gap:24px!important}
+  .home-work-editorial-chart{order:-1!important;margin:0 auto!important;width:100%!important;display:flex!important;justify-content:center!important}
 
   .home-backed-marquee-fade::before,.home-backed-marquee-fade::after{width:24px}
   .home-backed-marquee-section .home-backer-logo-item{min-width:112px!important;height:52px!important;border-radius:11px!important;padding:8px 12px!important}
@@ -748,9 +871,26 @@ body.mentra-menu-open{overflow:hidden}
   .home-faq-header h2{font-size:20px}
   .home-faq-header p{font-size:15px}
   .home-faq-layout{grid-template-columns:1fr!important;gap:22px!important}
-  .home-faq-tabs{position:static!important;flex-direction:row!important;overflow-x:auto!important;gap:8px!important;margin-inline:calc(-1 * var(--container-px));padding-inline:var(--container-px);padding-bottom:4px}
-  .home-faq-tab{width:auto!important;min-height:40px!important;padding:0 14px!important;white-space:nowrap;border:1px solid var(--border-subtle)!important;font-size:13px!important}
+  .home-faq-layout > *{min-width:0!important}
+  .home-faq-tabs{position:static!important;display:flex!important;flex-direction:row!important;overflow-x:auto!important;min-width:0!important;gap:24px!important;margin:0 calc(-1 * var(--container-px)) 16px !important;padding:0 var(--container-px) 8px !important;border-bottom:1px solid var(--border-subtle)!important}
+  .home-faq-tab{width:auto!important;min-height:42px!important;padding:0 0 8px 0!important;white-space:nowrap;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;font-size:15px!important;font-weight:600!important;color:var(--ink-secondary)!important;box-shadow:none!important}
+  .home-faq-tab:hover,
+  .home-faq-tab.is-active,
+  .home-faq-tab[aria-selected="true"] {
+    background: transparent !important;
+    color: var(--brand-text) !important;
+    border-bottom: 2px solid var(--brand) !important;
+  }
   .home-faq-question{min-height:68px!important;font-size:16px!important}
+  .section-green {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .section-green .container {
+    width: 100% !important;
+    max-width: 880px !important;
+    margin-inline: auto !important;
+  }
 }
 
 /* === 3.4 parity pass: exact nav anchoring, font consistency, product animation, media/logo sizing === */
@@ -827,28 +967,7 @@ body{font-optical-sizing:auto}
   .home-partner-card .home-partner-name{font-size:13px!important}
 }
 
-/* Backed-by strip closer to the original compact marquee. */
-.home-backed-marquee-section{overflow:hidden!important}
-.home-backed-marquee-section .home-backed-heading{margin:0 0 12px!important;font-size:18px!important;font-weight:500!important;line-height:1.2!important;text-transform:none!important;letter-spacing:0!important}
-.home-backed-marquee-section .home-backer-logo-strip{gap:14px!important;padding-right:14px!important}
-.home-backed-marquee-section .home-backer-logo-item{
-  flex:0 0 225px!important;
-  min-width:225px!important;
-  width:225px!important;
-  height:96px!important;
-  padding:16px 20px!important;
-  border-radius:18px!important;
-  background:#fafaf7!important;
-}
-.home-backed-marquee-section .home-backer-logo-item img{max-width:118px!important;max-height:34px!important;width:auto!important;height:auto!important;object-fit:contain!important}
-.home-backed-marquee-section .home-backer-logo-item span{font-size:12px!important;font-weight:500!important;white-space:nowrap}
-.home-backed-marquee-track{animation-duration:34s!important}
-@media(max-width:767px){
-  .home-backed-marquee-section .home-backed-heading{font-size:11px!important;margin-bottom:9px!important;text-align:left!important}
-  .home-backed-marquee-section .home-backer-logo-item{flex-basis:118px!important;min-width:118px!important;width:118px!important;height:52px!important;padding:8px 10px!important;border-radius:11px!important}
-  .home-backed-marquee-section .home-backer-logo-item img{max-width:72px!important;max-height:22px!important}
-  .home-backed-marquee-section .home-backer-logo-item span{font-size:7px!important}
-}
+/* Backed-by marquee overrides refactored globally at the end of the file. */
 
 /* =========================================================
    v3.5 — source-close Backed by marquee + header without cart
@@ -861,149 +980,268 @@ body{font-optical-sizing:auto}
   }
 }
 
-/* Source markup supplied for the "Backed by" rail. */
-.home-backed-marquee-section{
-  overflow:hidden!important;
-  background-color:var(--surface-2)!important;
-}
-.home-backed-marquee-section .site-shell{
-  max-width:none!important;
-}
-.home-backed-marquee-section .home-backed-content{
-  position:relative!important;
-  z-index:1!important;
-}
-.home-backed-marquee-section .home-backed-heading{
-  margin:0 0 18px!important;
-  font-family:var(--font-display)!important;
-  font-size:20px!important;
-  font-weight:500!important;
-  line-height:1.25!important;
-  letter-spacing:-.015em!important;
-  text-transform:none!important;
-  text-align:left!important;
-  color:var(--ink-primary)!important;
-}
-.home-backed-marquee-section .home-backed-marquee-fade{
-  position:relative!important;
-  inset:auto!important;
-  z-index:auto!important;
-  overflow:visible!important;
-  background:none!important;
-  pointer-events:auto!important;
-}
-.home-backed-marquee-section .home-backed-marquee{
-  position:relative!important;
-  overflow:hidden!important;
-  margin-inline:calc(-1 * var(--container-px))!important;
-  padding-inline:var(--container-px)!important;
-}
-.home-backed-marquee-section .home-backed-marquee-track{
-  display:flex!important;
-  align-items:stretch!important;
-  width:max-content!important;
-  animation:mentra-marquee 38s linear infinite!important;
-  will-change:transform;
-}
-.home-backed-marquee-section .home-backer-logo-strip{
-  display:flex!important;
-  align-items:stretch!important;
-  gap:16px!important;
-  padding-right:16px!important;
-}
-.home-backed-marquee-section .home-backer-logo-item{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:14px!important;
-  flex:0 0 314px!important;
-  width:314px!important;
-  min-width:314px!important;
-  height:128px!important;
-  padding:24px 28px!important;
-  border:1px solid rgba(15,23,42,.10)!important;
-  border-radius:24px!important;
-  background:var(--surface-0)!important;
-  box-shadow:0 2px 6px rgba(15,23,42,.035)!important;
-}
-.home-backed-marquee-section .home-backer-logo-item img{
-  display:block!important;
-  width:auto!important;
-  height:auto!important;
-  max-width:136px!important;
-  max-height:38px!important;
-  object-fit:contain!important;
-  filter:none!important;
-  opacity:1!important;
-  visibility:visible!important;
-  mix-blend-mode:normal!important;
-}
-.home-backed-marquee-section .home-backer-logo-item img[alt="YouTube"]{max-width:120px!important;max-height:32px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Pebble"]{max-width:112px!important;max-height:30px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Android"]{max-width:120px!important;max-height:34px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Y Combinator"]{max-width:128px!important;max-height:36px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Amazon"]{max-width:98px!important;max-height:34px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Hartmann Capital"]{max-width:116px!important;max-height:32px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Toyota Ventures"]{max-width:118px!important;max-height:34px!important}
-.home-backed-marquee-section .home-backer-logo-item span{
-  flex:0 0 auto!important;
-  font-family:var(--font-display)!important;
-  font-size:14px!important;
-  font-weight:500!important;
-  line-height:1!important;
-  color:var(--ink-tertiary)!important;
-  white-space:nowrap!important;
-}
-.home-backed-marquee-section .home-backed-marquee-fade::before,
-.home-backed-marquee-section .home-backed-marquee-fade::after{
-  content:"";
-  position:absolute;
-  top:0;
-  bottom:0;
-  width:72px;
-  z-index:3;
-  pointer-events:none;
-}
-.home-backed-marquee-section .home-backed-marquee-fade::before{
-  left:calc(-1 * var(--container-px));
-  background:linear-gradient(90deg,var(--surface-2),rgba(233,235,230,0));
-}
-.home-backed-marquee-section .home-backed-marquee-fade::after{
-  right:calc(-1 * var(--container-px));
-  background:linear-gradient(270deg,var(--surface-2),rgba(233,235,230,0));
-}
-.home-backed-marquee-section .home-backed-marquee:hover .home-backed-marquee-track{
-  animation-play-state:paused;
+/* =========================================================
+   Backed-by Section - Static Centered Logo Strip
+   ========================================================= */
+
+.home-backed-marquee-section {
+  overflow: visible !important;
+  background-color: var(--surface-2) !important;
+  padding: 32px var(--container-px) !important;
 }
 
-@media(max-width:767px){
-  .home-backed-marquee-section .home-backed-heading{
-    margin-bottom:12px!important;
-    font-size:15px!important;
-  }
-  .home-backed-marquee-section .home-backer-logo-strip{
-    gap:10px!important;
-    padding-right:10px!important;
-  }
-  .home-backed-marquee-section .home-backer-logo-item{
-    flex-basis:190px!important;
-    width:190px!important;
-    min-width:190px!important;
-    height:78px!important;
-    padding:14px 16px!important;
-    gap:8px!important;
-    border-radius:16px!important;
-  }
-  .home-backed-marquee-section .home-backer-logo-item img{
-    max-width:88px!important;
-    max-height:27px!important;
-  }
-  .home-backed-marquee-section .home-backer-logo-item span{
-    font-size:9px!important;
+.home-backed-marquee-section .site-shell {
+  max-width: var(--site-max-width) !important;
+  margin: 0 auto !important;
+}
+
+.home-backed-marquee-section .home-backed-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+}
+
+.home-backed-marquee-section .home-backed-heading {
+  margin: 0 0 16px 0 !important;
+  font-family: var(--font-display) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  color: var(--ink-secondary) !important;
+}
+
+/* Owner final requirement: keep the continuous horizontal marquee motion -
+   only the old white-card logo styling was wrong, never the animation.
+   Subtle edge fades so logos entering/leaving the visible strip don't hard-cut. */
+.home-backed-marquee-section .home-backed-marquee-fade {
+  position: relative !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::before,
+.home-backed-marquee-section .home-backed-marquee-fade::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 72px !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::before {
+  left: 0 !important;
+  background: linear-gradient(90deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::after {
+  right: 0 !important;
+  background: linear-gradient(270deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
+}
+
+.home-backed-marquee-section .home-backed-marquee {
+  position: relative !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+/* nowrap + max-content lets the track extend past the viewport; the parent's
+   overflow:hidden above clips it, so there is never a page-level horizontal
+   scrollbar. No transform:translateZ(0) - that GPU-layer hack was found to
+   block the animation from ever starting (see commit dccca0d). */
+.home-backed-marquee-section .home-backed-marquee-track {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  width: max-content !important;
+  animation: mentra-marquee 30s linear infinite !important;
+  gap: 40px !important;
+}
+
+.home-backed-marquee-section .home-backer-logo-strip {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  width: auto !important;
+  padding: 0 !important;
+  gap: 40px !important;
+}
+
+/* The duplicate strip is the second half of the seamless loop (the track
+   animates by exactly one strip-width via @keyframes mentra-marquee, so the
+   real and duplicate strips must render back-to-back with no visible gap
+   between them). aria-hidden keeps screen readers from announcing the
+   logos twice. */
+.home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
+  display: flex !important;
+}
+
+/* Reduced-motion users get a clean centered, wrapped, non-animated layout
+   instead of frozen mid-scroll content - the duplicate strip is hidden here
+   since a static layout only ever needs to show the logos once. */
+@media (prefers-reduced-motion: reduce) {
+  .home-backed-marquee-section .home-backed-marquee-fade {
+    overflow: visible !important;
   }
   .home-backed-marquee-section .home-backed-marquee-fade::before,
-  .home-backed-marquee-section .home-backed-marquee-fade::after{
-    width:34px;
+  .home-backed-marquee-section .home-backed-marquee-fade::after {
+    display: none !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee {
+    overflow: visible !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee-track {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    width: 100% !important;
+    animation: none !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-strip {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
+    display: none !important;
+  }
+}
+
+/* Style individual logo items as clean transparent inline elements */
+.home-backed-marquee-section .home-backer-logo-item {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 0 1 auto !important;
+}
+
+.home-backed-marquee-section .home-backer-logo-item span {
+  display: block !important;
+  text-align: center !important;
+  font-family: var(--font-display) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: var(--ink-tertiary) !important;
+  white-space: nowrap !important;
+}
+
+.home-backed-marquee-section .home-backer-logo-item img {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  filter: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Precise desktop logo sizing */
+.home-backed-marquee-section .home-backer-logo-item img[alt="YouTube"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Pebble"] {
+  max-width: 90px !important;
+  max-height: 22px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Android"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Y Combinator"] {
+  max-width: 110px !important;
+  max-height: 26px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Amazon"] {
+  max-width: 80px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Hartmann Capital"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Toyota Ventures"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+
+/* Tablet & Mobile responsive behavior */
+@media (max-width: 1024px) {
+  .home-backed-marquee-section {
+    padding: 24px var(--container-px) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .home-backed-marquee-section {
+    padding: 20px var(--container-px) !important;
+  }
+  .home-backed-marquee-section .home-backed-heading {
+    font-size: 11px !important;
+    margin-bottom: 12px !important;
+    letter-spacing: 0.18em !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee-track,
+  .home-backed-marquee-section .home-backer-logo-strip {
+    gap: 32px !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee-fade::before,
+  .home-backed-marquee-section .home-backed-marquee-fade::after {
+    width: 34px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item {
+    gap: 4px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item span {
+    font-size: 9px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="YouTube"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Pebble"] {
+    max-width: 70px !important;
+    max-height: 16px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Android"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Y Combinator"] {
+    max-width: 85px !important;
+    max-height: 20px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Amazon"] {
+    max-width: 65px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Hartmann Capital"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Toyota Ventures"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
   }
 }
 .mentra-header-end-spacer{display:block;flex:0 0 44px;width:44px;height:44px;margin-right:-4px;pointer-events:none}
@@ -1476,6 +1714,29 @@ body{font-optical-sizing:auto}
 .mentra-vn-careers .career-form-status.is-error{color:var(--error)}
 .mentra-vn-careers .career-form-status.is-success{color:var(--brand-text)}
 
+/* Phase 6: minimal spacing for the injected reCAPTCHA v2 Checkbox widget -
+   no layout/redesign, just enough margin so the ~304x78px Google iframe
+   doesn't collide with the field above/below it in Newsletter/Contact/Career. */
+.mentra-recaptcha{margin:6px 0 18px;max-width:100%;overflow:hidden}
+
+/* Forms UX hotfix: logo/heading header, locked-context badge, inline error
+   text, and success state for Contact/Career - reuses existing tokens
+   (--border-subtle, --surface-0, --ink-*, --brand, --error, --radius-xl)
+   and the existing .btn-base.btn-primary button styling, no new visual
+   system introduced. Newsletter is untouched. */
+.mentra-form-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.mentra-form-logo{height:22px;width:auto;display:block;flex-shrink:0}
+.mentra-form-heading{margin:0;font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--ink-primary)}
+.mentra-locked-type-label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink-primary)}
+.mentra-locked-type{display:inline-flex;align-items:center;padding:9px 16px;border-radius:999px;background:var(--surface-1);border:1px solid var(--border-subtle);color:var(--ink-primary);font-size:14px;font-weight:600}
+.mentra-form-error{margin:10px 0 0;font-size:.92rem;line-height:1.45;color:var(--error);min-height:1em}
+.mentra-form-success{display:none;flex-direction:column;align-items:flex-start;gap:10px;padding:32px 28px;border-radius:var(--radius-xl,24px);background:var(--surface-0);border:1px solid var(--border-subtle);outline:0}
+.mentra-form-success:not([hidden]){display:flex}
+.mentra-form-success-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:999px;background:var(--brand);color:#fff}
+.mentra-form-success-heading{margin:4px 0 0;font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--ink-primary)}
+.mentra-form-success-message{margin:0;font-size:14px;line-height:1.6;color:var(--ink-secondary);max-width:44ch}
+.mentra-form-success-cta{margin-top:6px}
+
 /* Newsroom tabs restored for the static WordPress mirror. */
 .mentra-vn-blogs #mentra-newsroom-grid [data-newsroom-item][hidden]{display:none!important}
 .mentra-vn-blogs .newsroom-press-media{display:flex;align-items:center;justify-content:center;background:var(--surface-2);padding:clamp(28px,4vw,58px)}
@@ -1526,8 +1787,8 @@ body{font-optical-sizing:auto}
 @media(min-width:1280px){.xl\:text-\[60px\]{font-size:60px}}
 
 /* --- nh-compare styling --- */
-.nh-compare{display:grid;grid-template-columns:repeat(2,1fr);grid-gap:10px;gap:10px}
-@media (min-width: 40em){.nh-compare{gap:16px}}
+.nh-compare{display:grid;grid-template-columns:1fr;grid-gap:16px;gap:16px}
+@media (min-width: 40em){.nh-compare{grid-template-columns:repeat(2,1fr);gap:16px}}
 @media (min-width: 48em){.nh-compare{gap:24px}}
 .nh-compare__card{border-radius:var(--nh-radius);padding:14px;position:relative;overflow:hidden}
 @media (min-width: 32em){.nh-compare__card{padding:18px}}
@@ -1693,6 +1954,67 @@ body{font-optical-sizing:auto}
   }
 }
 
+/* Newsletter reCAPTCHA centering and spacing */
+form[data-mentra-newsletter="1"] .mentra-recaptcha {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 12px auto 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
 
-
-
+/* Homepage comparison table mobile responsiveness */
+@media (max-width: 640px) {
+  .home-comparison-clip {
+    min-width: 0 !important;
+    width: 100% !important;
+    border-radius: 12px !important;
+  }
+  .home-comparison-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+  }
+  .home-comparison-table col.home-comparison-feature-col {
+    width: 44% !important;
+  }
+  .home-comparison-table col.home-comparison-value-col {
+    width: 28% !important;
+  }
+  .home-comparison-feature-head,
+  .home-comparison-product {
+    height: 90px !important;
+    padding: 8px 6px !important;
+  }
+  .home-comparison-product img {
+    max-height: 36px !important;
+    max-width: 70px !important;
+  }
+  .home-comparison-product span {
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+  }
+  .home-comparison-spec-table th,
+  .home-comparison-spec-table td {
+    height: auto !important;
+    padding: 8px 6px !important;
+    vertical-align: middle !important;
+  }
+  .home-comparison-spec-name {
+    font-size: 11px !important;
+    gap: 4px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  .home-comparison-spec-name img {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  .home-comparison-value {
+    font-size: 11px !important;
+    gap: 4px !important;
+  }
+  .home-comparison-value svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+}
