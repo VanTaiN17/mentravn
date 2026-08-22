@@ -1015,36 +1015,22 @@ body{font-optical-sizing:auto}
   color: var(--ink-secondary) !important;
 }
 
-/* Enable marquee-specific fade gradients */
+/* Owner final requirement: clean centered STATIC strip, no marquee/scroll
+   animation - no edge-fade gradients either, since those only make sense
+   as a scroll-edge effect and this content is now fully visible at once. */
 .home-backed-marquee-section .home-backed-marquee-fade {
   position: relative !important;
   width: 100% !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 .home-backed-marquee-section .home-backed-marquee-fade::before,
 .home-backed-marquee-section .home-backed-marquee-fade::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 72px !important;
-  z-index: 3 !important;
-  pointer-events: none !important;
-}
-.home-backed-marquee-section .home-backed-marquee-fade::before {
-  left: 0 !important;
-  background: linear-gradient(90deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
-}
-.home-backed-marquee-section .home-backed-marquee-fade::after {
-  right: 0 !important;
-  background: linear-gradient(270deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
+  display: none !important;
 }
 
-/* Enable marquee scrolling track */
 .home-backed-marquee-section .home-backed-marquee {
   position: relative !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   width: 100% !important;
   mask-image: none !important;
   -webkit-mask-image: none !important;
@@ -1053,28 +1039,29 @@ body{font-optical-sizing:auto}
 .home-backed-marquee-section .home-backed-marquee-track {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  justify-content: flex-start !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
   align-items: center !important;
-  width: max-content !important;
-  animation: mentra-marquee 30s linear infinite !important;
+  width: 100% !important;
+  animation: none !important;
   gap: 40px !important;
 }
 
 .home-backed-marquee-section .home-backer-logo-strip {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  justify-content: flex-start !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
   align-items: center !important;
   width: auto !important;
   padding: 0 !important;
   gap: 40px !important;
 }
 
-/* Show the duplicate logo strip used for marquee looping */
+/* The duplicate logo strip only existed to make the marquee loop
+   seamlessly - a static strip shows the real logos once, not twice. */
 .home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
-  display: flex !important;
+  display: none !important;
 }
 
 /* Style individual logo items as clean transparent inline elements */
