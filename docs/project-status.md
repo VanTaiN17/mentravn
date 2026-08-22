@@ -1,14 +1,24 @@
 # Mentra Vietnam — Current Project Status
 
 Last updated: 2026-08-22
-Current stable phase: Phases 1–7 all PASS/COMPLETE. Forms Hotfix + its UX/branding/acknowledgement-email extension RESOLVED/COMPLETE. The **Final Forms/Purchase/Email Hotfix is COMPLETE and OWNER APPROVED** after real-browser + real-Gmail verification (see "Owner Verification" below). **Phase 8 — Final QA / Pre-Production Audit is COMPLETE, TECHNICAL PASS** — see the Phase 8 entry below, `docs/phase-8-report.md`, and `docs/production-readiness.md`.
-Current branch: `qa/pre-production` (branched from `fix/forms-captcha-500` HEAD for Phase 8).
+Current stable phase: Phases 1–7 all PASS/COMPLETE. Forms Hotfix + its UX/branding/acknowledgement-email extension RESOLVED/COMPLETE. **Final Forms/Purchase/Email Hotfix = COMPLETE, OWNER APPROVED. Phase 8 — Final QA / Pre-Production Audit = TECHNICAL PASS. Post-QA UI polish (Backed By static/flat logo styling + restored marquee animation, Newsletter reCAPTCHA positioning) = OWNER APPROVED. Classic Editor for News Posts = OWNER APPROVED / ACTIVE. 16-article Yoast SEO metadata audit = COMPLETE (Focus Keyphrase/SEO Title/Meta Description/image-alt fixes); Yoast Readability optimization is explicitly DEFERRED, not blocking.** All of the above are now integrated into one staging candidate — see "Staging Candidate" below.
+Current branch: `release/staging-candidate` (integration branch — merged from `fix/post-qa-ui-polish` HEAD + `seo/news-articles-audit`, which itself already contains `fix/news-classic-editor`).
 Latest commit: run `git log -1 --oneline` for the exact hash; this header is not automatically re-synced on later commits.
 Working tree: clean at last check.
-Branch lineage: `qa/pre-production` → `fix/forms-captcha-500` → `feature/mail-delivery` (Phase 7) → `feature/recaptcha-security` (Phase 6) → `feature/forms-architecture` (Phase 5) → `fix/full-visual-fidelity` (owner-approved frontend).
-Upstream/tracking: `qa/pre-production`, `fix/forms-captcha-500`, `feature/mail-delivery`, `feature/recaptcha-security`, `feature/forms-architecture` all have **no upstream** — never pushed. `fix/full-visual-fidelity` and five other earlier branches (`audit/site-inventory`, `fix/static-pages`, `feature/woocommerce-catalog`, `feature/news-posts`) already have matching `origin/*` refs from an earlier authorized push — those remain the only branches on GitHub.
+Branch lineage: `release/staging-candidate` = `fix/post-qa-ui-polish` (Backed By/Newsletter polish, branched from `qa/pre-production` HEAD) merged (`--no-ff`) with `seo/news-articles-audit` (News SEO, which itself branched from and contains `fix/news-classic-editor`). `qa/pre-production` → `fix/forms-captcha-500` → `feature/mail-delivery` (Phase 7) → `feature/recaptcha-security` (Phase 6) → `feature/forms-architecture` (Phase 5) → `fix/full-visual-fidelity` (owner-approved frontend).
+Upstream/tracking: `release/staging-candidate`, `qa/pre-production`, `fix/post-qa-ui-polish`, `fix/news-classic-editor`, `seo/news-articles-audit`, `fix/forms-captcha-500`, `feature/mail-delivery`, `feature/recaptcha-security`, `feature/forms-architecture` all have **no upstream** — never pushed. `fix/full-visual-fidelity` and five other earlier branches (`audit/site-inventory`, `fix/static-pages`, `feature/woocommerce-catalog`, `feature/news-posts`) already have matching `origin/*` refs from an earlier authorized push — those remain the only branches on GitHub.
 Git remote: `origin` = `https://github.com/VanTaiN17/mentravn.git` (canonical, only remote configured).
 Push status: **nothing pushed this session or since** — do not push without explicit owner authorization.
+
+## Staging Candidate
+
+`release/staging-candidate` is the current, integrated, verified build combining everything below into one clean history for the next GitHub milestone push (not yet authorized — awaiting project-manager review of the integration report):
+- Phase 8 (routing/soft-404 fixes, SEO locale root-cause fix, sitemap duplicate-route cleanup, gallery alt-text fixes, dead-asset/CSS cleanup)
+- Post-QA UI polish (Backed By: flat transparent logo strip, no cards/borders/shadows, centered heading, restored continuous marquee animation with seamless duplicate strip and a dedicated `prefers-reduced-motion` static fallback; Newsletter: reCAPTCHA positioned below the email/button row, above the helper text)
+- Classic Editor for News Posts (admin-only; Pages/Products unaffected)
+- News SEO audit (all 16 owned articles: Focus Keyphrase, SEO Title, Meta Description, confirmed indexable, confirmed featured images, 12 body-image alt-text fixes across 8 articles; Yoast Readability explicitly deferred, not rewritten)
+
+Merge was clean (`git merge --no-ff seo/news-articles-audit`) — no conflicts. Full verification (routes, WooCommerce catalog-only, Purchase tamper test, Forms smoke test, News counts/redirects, Classic Editor resolution, all-16-articles SEO integrity, asset-reference check, `php -l`/`node --check`, secret scan) re-run and passed on the merged branch — see the integration report for detail.
 
 ## Owner Verification (Final Forms/Purchase/Email Hotfix)
 
@@ -189,9 +199,9 @@ Admin notification is primary. If the admin `wp_mail()` fails → the submission
 
 ## Next planned phase
 
-**Phase 8 — Final QA / Pre-Production Audit is COMPLETE, TECHNICAL PASS** on branch `qa/pre-production`. See the Phase 8 entry above, `docs/phase-8-report.md` (full detail + gate checklist), and `docs/production-readiness.md` (READY / OWNER ACTION / LEGAL ACTION / PRODUCTION CONFIG / OPTIONAL breakdown).
+**Phase 8 — Final QA / Pre-Production Audit is COMPLETE, TECHNICAL PASS.** See the Phase 8 entry above, `docs/phase-8-report.md` (full detail + gate checklist), and `docs/production-readiness.md` (READY / OWNER ACTION / LEGAL ACTION / PRODUCTION CONFIG / OPTIONAL breakdown). Post-QA UI polish, Classic Editor, and the News SEO audit are all now integrated and verified on `release/staging-candidate` (see "Staging Candidate" above) — that branch is the current build awaiting project-manager review before a GitHub milestone push (not yet authorized).
 
-No further engineering phase is currently planned or authorized. Everything remaining is owner/admin configuration, legal review, or production-deployment-environment steps — not code: WP Mail SMTP provider selection + credentials + From Email, real production reCAPTCHA keys, the final production domain to replace the `domain.vn` placeholder, production DNS (SPF/DKIM/DMARC), and Vietnam-specific legal review of the four legal-policy page bodies (`docs/production-readiness.md` has the full breakdown). No local branch in this lineage has been pushed to origin yet.
+No further engineering phase is currently planned or authorized. Remaining deferred, non-blocking work: Yoast Readability optimization for the 16 articles (long sentences/paragraph length/subheading distribution — explicitly deferred, do not rewrite article bodies for this). Everything else remaining is owner/admin configuration, legal review, or production-deployment-environment steps — not code: WP Mail SMTP provider selection + credentials + From Email, real production reCAPTCHA keys, the final production domain to replace the `domain.vn` placeholder, production DNS (SPF/DKIM/DMARC), and Vietnam-specific legal review of the four legal-policy page bodies (`docs/production-readiness.md` has the full breakdown). No local branch in this lineage has been pushed to origin yet.
 
 **DO NOT START A NEW PHASE WITHOUT USER/PROJECT-MANAGER INSTRUCTION.**
 

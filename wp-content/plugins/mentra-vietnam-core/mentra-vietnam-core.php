@@ -92,6 +92,9 @@ final class Mentra_Vietnam_Core_99 {
         add_action('init', [__CLASS__, 'maybe_create_infinity_cable_product'], 25);
         add_action('init', [__CLASS__, 'maybe_create_news_category'], 26);
         add_action('init', [__CLASS__, 'maybe_import_mentra_articles'], 30);
+        add_action('init', [__CLASS__, 'maybe_set_article_seo_metadata'], 31);
+        add_action('init', [__CLASS__, 'maybe_fix_article_image_alt_text'], 31);
+        add_filter('use_block_editor_for_post_type', [__CLASS__, 'use_classic_editor_for_news_posts'], 10, 2);
         add_action('admin_menu', [__CLASS__, 'admin_menu']);
         add_action('admin_init', [__CLASS__, 'register_settings']);
         add_action('admin_notices', [__CLASS__, 'recaptcha_admin_notice']);
@@ -674,6 +677,203 @@ final class Mentra_Vietnam_Core_99 {
     }
 
     /**
+     * Post-QA Yoast SEO audit: one Focus Keyphrase, SEO Title, and Meta
+     * Description per owned article - a distinct, specific phrase per post
+     * (never the generic "Mentra"), each copied/adapted only from that
+     * article's own already-approved title/excerpt/body content in
+     * data/mentra-articles.php, never invented. Keyed by the article's
+     * stable 'slug' (matches '_mentra_vn_legacy_slug' postmeta, the same
+     * identifier create_mentra_article() itself uses) - never a post ID.
+     */
+    const ARTICLE_SEO = [
+        'mentra-3-0-local-miniapps-full-user-control-and-enterprise-smart-glasses' => [
+            'keyphrase' => 'MentraOS 3.0',
+            'title' => 'Mentra 3.0 – Miniapp cục bộ và kính thông minh cho doanh nghiệp',
+            'description' => 'Mentra 3.0 xây dựng lại MentraOS xoay quanh miniapp cục bộ nhanh, ổn định, với SDK Miniapp mới và nhiều cải tiến cho Mentra Live.',
+        ],
+        '1-year-of-mentra' => [
+            'keyphrase' => 'một năm của Mentra',
+            'title' => 'Một năm của Mentra',
+            'description' => 'Nhìn lại năm đầu tiên của Mentra: từ những ngày đầu ở Thâm Quyến đến đội ngũ 16 người và hai đợt ra mắt sản phẩm lớn sắp tới.',
+        ],
+        'announcing-mentraos-2-0-and-our-8m-raise' => [
+            'keyphrase' => 'MentraOS 2.0',
+            'title' => 'Ra mắt MentraOS 2.0 và vòng gọi vốn 8 triệu USD',
+            'description' => 'MentraOS 2.0 chính thức ra mắt cùng lúc Mentra công bố huy động 8 triệu USD vòng hạt giống để xây dựng hệ điều hành mã nguồn mở cho kính thông minh.',
+        ],
+        'augmentedchords-goes-1-on-hacker-news-sheet-music-app-build-on-mentraos' => [
+            'keyphrase' => 'AugmentedChords',
+            'title' => 'AugmentedChords lên #1 Hacker News – Ứng dụng bản nhạc trên MentraOS',
+            'description' => 'Ứng dụng bản nhạc trên kính thông minh của nhà phát triển cộng đồng Kevin Lin đã leo lên #1 Hacker News, minh chứng cho sức mạnh hệ sinh thái MentraOS mở.',
+        ],
+        'august-22-community-update' => [
+            'keyphrase' => 'cập nhật cộng đồng Mentra',
+            'title' => 'Cập nhật cộng đồng Mentra – Mentra Live và MentraOS',
+            'description' => 'Cập nhật nhanh về tiến độ phần mềm, ứng dụng và phần cứng của Mentra, từ cải thiện độ ổn định MentraOS đến tiến độ chế tạo Mentra Live và Nex.',
+        ],
+        'batch-1-almost-sold-out' => [
+            'keyphrase' => 'Mentra Live Đợt 1',
+            'title' => 'Đợt 1 Mentra Live gần bán hết – Câu lạc bộ Nhà sáng lập',
+            'description' => 'Đợt 1 của Mentra Live sắp đạt giới hạn số lượng – cơ hội cuối để gia nhập Câu lạc bộ 1.000 Nhà sáng lập trước ngày giao hàng 13 tháng 2.',
+        ],
+        'even-realities-g2-supported-on-mentraos' => [
+            'keyphrase' => 'Even Realities G2',
+            'title' => 'MentraOS sắp hỗ trợ Even Realities G2',
+            'description' => 'Mentra công bố sẽ hỗ trợ đầy đủ Even Realities G2 trên MentraOS, dự kiến hoàn tất vào tháng 1 năm 2026.',
+        ],
+        'making-mentra-live' => [
+            'keyphrase' => 'thiết kế Mentra Live',
+            'title' => 'Hành trình tạo nên Mentra Live',
+            'description' => 'Góc nhìn sâu về các quyết định kỹ thuật và thách thức trong hành trình nâng cấp camera, khung kính, chip xử lý, âm thanh và cáp sạc của Mentra Live.',
+        ],
+        'memcards-the-first-third-party-app-to-launch-on-mentra-market' => [
+            'keyphrase' => 'MemCards',
+            'title' => 'MemCards – Ứng dụng bên thứ ba đầu tiên trên Mentra Market',
+            'description' => 'MemCards của studio Tomtau chính thức trở thành ứng dụng bên thứ ba đầu tiên ra mắt trên Mentra Market, đánh dấu bước chuyển sang hệ sinh thái ứng dụng cộng đồng.',
+        ],
+        'mentra-live-featured-in-engadget-gizmodo-new-york-post-and-more' => [
+            'keyphrase' => 'Mentra Live trên báo chí',
+            'title' => 'Đợt 1 đã bán hết – Mentra Live trên Engadget, Gizmodo, NY Post',
+            'description' => 'Đợt 1 Mentra Live đã bán hết, và sản phẩm được hàng loạt báo lớn như Engadget, Gizmodo và New York Post đưa tin.',
+        ],
+        'mentra-live-shipping-update' => [
+            'keyphrase' => 'giao hàng Mentra Live',
+            'title' => 'Cập nhật giao hàng Mentra Live',
+            'description' => 'Mentra Live sẽ giao hàng trễ hơn 6 tuần, đến ngày 15 tháng 2, để hoàn thiện hộp sạc, microphone, chống rung camera và các tính năng còn lại.',
+        ],
+        'mentra-roadmap-update-moving-to-miniapps-on-the-phone' => [
+            'keyphrase' => 'Mentra Miniapp SDK',
+            'title' => 'Cập nhật lộ trình Mentra – Miniapp chạy trên điện thoại',
+            'description' => 'Mentra công bố kiến trúc mới của MentraOS: chuyển miniapp từ cloud sang chạy cục bộ trên điện thoại, cùng Mentra Bluetooth SDK cho triển khai doanh nghiệp.',
+        ],
+        'mentraos-1-0-launch-hackathon-smart-glasses-hackathon-march-2-2025' => [
+            'keyphrase' => 'hackathon MentraOS',
+            'title' => 'Hackathon ra mắt MentraOS 1.0',
+            'description' => 'Tổng kết hackathon kính thông minh đầu tiên của Mentra tại San Francisco, với các dự án nổi bật và ba đội chiến thắng.',
+        ],
+        'mentraos-the-smart-glasses-operating-system-app-store' => [
+            'keyphrase' => 'hệ điều hành kính thông minh',
+            'title' => 'Vì sao chúng tôi xây dựng MentraOS',
+            'description' => 'Vì sao Mentra xây dựng MentraOS – hệ điều hành mã nguồn mở, do cộng đồng kiểm soát cho kính thông minh, hướng tới tương lai điện toán không gian.',
+        ],
+        'our-first-press-release-mentra-releases-first-smart-glasses-with-an-app-store' => [
+            'keyphrase' => 'kho ứng dụng Mentra',
+            'title' => 'Mentra ra mắt kính thông minh đầu tiên có kho ứng dụng riêng',
+            'description' => 'Thông cáo báo chí chính thức đầu tiên của Mentra, công bố Mentra Live – chiếc kính thông minh đầu tiên có kho ứng dụng riêng.',
+        ],
+        'real-time-captions-with-mentraos' => [
+            'keyphrase' => 'phụ đề MentraOS',
+            'title' => 'Phụ đề thời gian thực với MentraOS',
+            'description' => 'Mentra ra mắt ứng dụng Phụ đề thời gian thực mới – nhanh, chính xác, phân biệt được người nói và hoàn toàn miễn phí cho kính thông minh.',
+        ],
+    ];
+
+    /**
+     * Idempotent (checks each field before writing) - safe to run on every
+     * 'init'. Looks up each post by '_mentra_vn_legacy_slug' (never a
+     * hardcoded ID, since post IDs are install-specific). Only ever writes
+     * Yoast's own supported per-post meta keys
+     * (_yoast_wpseo_focuskw/_yoast_wpseo_title/_yoast_wpseo_metadesc) -
+     * never touches the Yoast plugin's own source. Does not force
+     * '_yoast_wpseo_meta-robots-noindex' either way - these 16 posts are
+     * expected to already be indexable by default (no noindex meta was
+     * ever set on them), so there is nothing to correct there.
+     */
+    public static function maybe_set_article_seo_metadata() {
+        foreach (self::ARTICLE_SEO as $slug => $seo) {
+            $posts = get_posts([
+                'post_type' => 'post',
+                'post_status' => 'any',
+                'meta_key' => '_mentra_vn_legacy_slug',
+                'meta_value' => $slug,
+                'numberposts' => 1,
+                'fields' => 'ids',
+            ]);
+            if (!$posts) { continue; }
+            $post_id = (int) $posts[0];
+            if (get_post_meta($post_id, '_yoast_wpseo_focuskw', true) === '') {
+                update_post_meta($post_id, '_yoast_wpseo_focuskw', $seo['keyphrase']);
+            }
+            if (get_post_meta($post_id, '_yoast_wpseo_title', true) === '') {
+                update_post_meta($post_id, '_yoast_wpseo_title', $seo['title'] . ' %%page%% %%sep%% %%sitename%%');
+            }
+            if (get_post_meta($post_id, '_yoast_wpseo_metadesc', true) === '') {
+                update_post_meta($post_id, '_yoast_wpseo_metadesc', $seo['description']);
+            }
+        }
+    }
+
+    /**
+     * Post-QA audit found 12 inline body images across 8 of the 16 owned
+     * articles with a literal empty alt="" attribute - confirmed by
+     * reading data/mentra-articles.php directly. Editing that source file
+     * alone would NOT fix the already-imported live posts
+     * (create_mentra_article() never overwrites existing post_content), so
+     * this is a targeted, idempotent one-time content migration instead -
+     * exact string replacement of each known empty alt="" tag with real,
+     * context-derived alt text (what the surrounding paragraph/section
+     * already says the image shows - never invented), keyed by legacy
+     * slug. Every other character of post_content is untouched - this
+     * does not rewrite editorial copy, only fills in missing alt text.
+     * Idempotent: each replacement is a no-op once already applied (the
+     * old alt="" substring will no longer be found).
+     */
+    public static function maybe_fix_article_image_alt_text() {
+        $theme_uri = get_template_directory_uri();
+        $fixes = [
+            '1-year-of-mentra' => [
+                ['alt="" height="504" src="' . $theme_uri . '/assets/news/mentra_Hackathon_Nov_28_2025_1_33655b7c-d86a-403e-8f0e-c296aaa88460.jpg"', 'alt="Hackathon MentraOS tháng 11 năm 2025" height="504" src="' . $theme_uri . '/assets/news/mentra_Hackathon_Nov_28_2025_1_33655b7c-d86a-403e-8f0e-c296aaa88460.jpg"'],
+            ],
+            'announcing-mentraos-2-0-and-our-8m-raise' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/blog_image.png"', 'alt="Các nhà đầu tư của Mentra" src="' . $theme_uri . '/assets/news/blog_image.png"'],
+            ],
+            'august-22-community-update' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/mentra_store_old.png"', 'alt="Mentra Store" src="' . $theme_uri . '/assets/news/mentra_store_old.png"'],
+                ['alt="" src="' . $theme_uri . '/assets/news/mentra_live_old.jpg"', 'alt="Mentra Live" src="' . $theme_uri . '/assets/news/mentra_live_old.jpg"'],
+                ['alt="" src="' . $theme_uri . '/assets/news/nex_is_cooking.png"', 'alt="Mentra Nex" src="' . $theme_uri . '/assets/news/nex_is_cooking.png"'],
+            ],
+            'batch-1-almost-sold-out' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/1000028631.jpg"', 'alt="Mentra Live" src="' . $theme_uri . '/assets/news/1000028631.jpg"'],
+            ],
+            'mentra-live-featured-in-engadget-gizmodo-new-york-post-and-more' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/Screenshot_2026-01-28_at_12.22.04_AM.png"', 'alt="Cập nhật MentraOS trên Discord" src="' . $theme_uri . '/assets/news/Screenshot_2026-01-28_at_12.22.04_AM.png"'],
+                ['alt="" src="' . $theme_uri . '/assets/news/News_Montage.png"', 'alt="Mentra Live trên báo chí" src="' . $theme_uri . '/assets/news/News_Montage.png"'],
+            ],
+            'making-mentra-live' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/charging_case_upgrade.jpg"', 'alt="Hộp sạc Mentra Live phiên bản nâng cấp" src="' . $theme_uri . '/assets/news/charging_case_upgrade.jpg"'],
+            ],
+            'real-time-captions-with-mentraos' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/Screenshot_2026-02-05_at_1.44.58_PM.png"', 'alt="Ứng dụng Phụ đề của MentraOS" src="' . $theme_uri . '/assets/news/Screenshot_2026-02-05_at_1.44.58_PM.png"'],
+                ['alt="" src="' . $theme_uri . '/assets/news/Caption_Blogs-1.png"', 'alt="Sao chép văn bản phụ đề" src="' . $theme_uri . '/assets/news/Caption_Blogs-1.png"'],
+                ['alt="" src="' . $theme_uri . '/assets/news/Screenshot_2026-02-05_at_1.34.53_PM.png"', 'alt="Phụ đề đa ngôn ngữ MentraOS" src="' . $theme_uri . '/assets/news/Screenshot_2026-02-05_at_1.34.53_PM.png"'],
+            ],
+            'our-first-press-release-mentra-releases-first-smart-glasses-with-an-app-store' => [
+                ['alt="" src="' . $theme_uri . '/assets/news/WomanWearingMentraLive.png"', 'alt="Người dùng đeo Mentra Live" src="' . $theme_uri . '/assets/news/WomanWearingMentraLive.png"'],
+            ],
+        ];
+        foreach ($fixes as $slug => $replacements) {
+            $posts = get_posts([
+                'post_type' => 'post',
+                'post_status' => 'any',
+                'meta_key' => '_mentra_vn_legacy_slug',
+                'meta_value' => $slug,
+                'numberposts' => 1,
+                'fields' => 'ids',
+            ]);
+            if (!$posts) { continue; }
+            $post_id = (int) $posts[0];
+            $content = get_post_field('post_content', $post_id);
+            $updated = $content;
+            foreach ($replacements as [$search, $replace]) {
+                $updated = str_replace($search, $replace, $updated);
+            }
+            if ($updated !== $content) {
+                wp_update_post(['ID' => $post_id, 'post_content' => $updated]);
+            }
+        }
+    }
+
+    /**
      * Copies a theme asset into the Media Library, idempotently (tracked
      * by the '_mentra_vn_source_asset' meta key so re-running never
      * creates duplicate attachments for the same source file).
@@ -714,6 +914,25 @@ final class Mentra_Vietnam_Core_99 {
         update_post_meta($attachment_id, '_mentra_vn_source_asset', $relative_path);
 
         return $attachment_id;
+    }
+
+    /**
+     * Owner request: the News/article editing screen (post_type=post) should
+     * use WordPress's traditional Classic Editor UI (TinyMCE, Title field,
+     * Add Media, Visual/Text tabs, meta-box sidebar) instead of the block
+     * editor - admin-only, no public frontend effect. WordPress core has
+     * kept the pre-block-editor edit screen fully maintained specifically
+     * for this filter since the block editor merged, so no separate Classic
+     * Editor plugin dependency is needed (confirmed none is installed on
+     * this site). Scoped to exactly $post_type === 'post' - Pages,
+     * WooCommerce Products, and any other post type are untouched and keep
+     * whatever editor they already use.
+     */
+    public static function use_classic_editor_for_news_posts($use_block_editor, $post_type) {
+        if ($post_type === 'post') {
+            return false;
+        }
+        return $use_block_editor;
     }
 
     public static function admin_menu() {
