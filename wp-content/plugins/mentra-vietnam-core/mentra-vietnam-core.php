@@ -11,6 +11,55 @@ if (!defined('ABSPATH')) { exit; }
 final class Mentra_Vietnam_Core_99 {
     const OPT = 'mentra_vn_settings';
 
+    // Phase 5: single recipient source of truth for all six business-contact
+    // form types. Deliberately one option (not a per-type split) per the
+    // current business rule that all contact mail goes to one address; the
+    // $type/FORM_TYPES metadata is still threaded through every submission
+    // so recipients can be split by type later without any frontend change.
+    const CONTACT_EMAIL_OPTION = 'mentra_vn_contact_email';
+    const CONTACT_EMAIL_DEFAULT = 'contact@domain.vn';
+
+    // Server-generated subject prefixes - never trust a client-provided prefix.
+    const FORM_TYPES = [
+        'general' => '[MENTRA - LIÊN HỆ]',
+        'sales' => '[MENTRA - KINH DOANH]',
+        'support' => '[MENTRA - HỖ TRỢ]',
+        'partnership' => '[MENTRA - ĐỐI TÁC]',
+        'media' => '[MENTRA - TRUYỀN THÔNG]',
+        'career' => '[MENTRA - TUYỂN DỤNG]',
+    ];
+
+    // Whitelist mapping the #contact-subject dropdown's fixed option values
+    // (already present in templates/source/contact*.html, partnerships.html,
+    // media-inquiries.html - no new options invented) to one of the five
+    // non-career form types. Matched case-insensitively; anything not listed
+    // here is rejected rather than guessed.
+    const CONTACT_SUBJECT_MAP = [
+        '' => 'general',
+        'general question' => 'general',
+        'sales' => 'sales',
+        'order & shipping' => 'sales',
+        'technical support' => 'support',
+        'partnerships' => 'partnership',
+        'business & partnerships' => 'partnership',
+        'media inquiries' => 'media',
+        'phản hồi' => 'general',
+        'other' => 'general',
+    ];
+
+    // Whitelist of the #career-expertise select's fixed option values
+    // (templates/source/careers.html) - no new options invented.
+    const CAREER_EXPERTISE = [
+        'Software Engineering',
+        'Hardware / Electrical Engineering',
+        'AI / Machine Learning',
+        'Product Design / UX',
+        'Marketing / Growth',
+        'Operations / Business',
+        'Community / Content',
+        'Other',
+    ];
+
     public static function init() {
         add_action('init', [__CLASS__, 'register_subscriber_cpt']);
         add_action('init', [__CLASS__, 'maybe_create_pages'], 20);
@@ -24,6 +73,8 @@ final class Mentra_Vietnam_Core_99 {
         add_action('wp_ajax_nopriv_mentra_vn_newsletter', [__CLASS__, 'newsletter']);
         add_action('wp_ajax_mentra_vn_contact_ajax', [__CLASS__, 'contact_ajax']);
         add_action('wp_ajax_nopriv_mentra_vn_contact_ajax', [__CLASS__, 'contact_ajax']);
+        add_action('wp_ajax_mentra_vn_career_ajax', [__CLASS__, 'career_ajax']);
+        add_action('wp_ajax_nopriv_mentra_vn_career_ajax', [__CLASS__, 'career_ajax']);
     }
 
     public static function activate() {
@@ -457,29 +508,48 @@ final class Mentra_Vietnam_Core_99 {
 
     public static function register_settings() {
         register_setting('mentra_vn_group', self::OPT, ['sanitize_callback' => [__CLASS__, 'sanitize_settings']]);
+        register_setting('mentra_vn_group', self::CONTACT_EMAIL_OPTION, [
+            'type' => 'string',
+            'sanitize_callback' => [__CLASS__, 'sanitize_contact_email'],
+            'default' => self::CONTACT_EMAIL_DEFAULT,
+        ]);
     }
 
     public static function sanitize_settings($value) {
         $value = is_array($value) ? $value : [];
         return [
             'company' => sanitize_text_field($value['company'] ?? 'Mentra Việt Nam'),
-            'sales_email' => sanitize_email($value['sales_email'] ?? get_option('admin_email')),
-            'support_email' => sanitize_email($value['support_email'] ?? get_option('admin_email')),
             'phone' => sanitize_text_field($value['phone'] ?? ''),
         ];
+    }
+
+    public static function sanitize_contact_email($value) {
+        $value = sanitize_email((string) $value);
+        return ($value && is_email($value)) ? $value : self::CONTACT_EMAIL_DEFAULT;
     }
 
     private static function settings() {
         return wp_parse_args(get_option(self::OPT, []), [
             'company' => 'Mentra Việt Nam',
-            'sales_email' => get_option('admin_email'),
-            'support_email' => get_option('admin_email'),
             'phone' => '',
         ]);
     }
 
+    /**
+     * Current recipient for all six business-contact form types (General,
+     * Sales, Support, Partnership, Media, Career). One address, editable in
+     * wp-admin - see CONTACT_EMAIL_OPTION.
+     */
+    private static function contact_email() {
+        $value = sanitize_email((string) get_option(self::CONTACT_EMAIL_OPTION, self::CONTACT_EMAIL_DEFAULT));
+        if (!$value || !is_email($value)) { $value = get_option('admin_email'); }
+        return $value;
+    }
+
     public static function settings_page() {
-        $v = self::settings(); ?>
+        $v = self::settings();
+        $contact_email = get_option(self::CONTACT_EMAIL_OPTION, self::CONTACT_EMAIL_DEFAULT);
+        ?>
         <div class="wrap">
             <h1>Mentra Việt Nam</h1>
             <p>Theme v3 dùng giao diện từ bản mirror Mentra. Tại đây bạn chỉ cần cấu hình nơi nhận thông tin khách hàng.</p>
@@ -487,8 +557,7 @@ final class Mentra_Vietnam_Core_99 {
                 <?php settings_fields('mentra_vn_group'); ?>
                 <table class="form-table" role="presentation">
                     <tr><th><label for="mentra-company">Tên đơn vị</label></th><td><input id="mentra-company" class="regular-text" name="<?php echo esc_attr(self::OPT); ?>[company]" value="<?php echo esc_attr($v['company']); ?>"></td></tr>
-                    <tr><th><label for="mentra-sales">Email kinh doanh</label></th><td><input id="mentra-sales" class="regular-text" type="email" name="<?php echo esc_attr(self::OPT); ?>[sales_email]" value="<?php echo esc_attr($v['sales_email']); ?>"></td></tr>
-                    <tr><th><label for="mentra-support">Email hỗ trợ</label></th><td><input id="mentra-support" class="regular-text" type="email" name="<?php echo esc_attr(self::OPT); ?>[support_email]" value="<?php echo esc_attr($v['support_email']); ?>"></td></tr>
+                    <tr><th><label for="mentra-contact-email">Email nhận liên hệ</label></th><td><input id="mentra-contact-email" class="regular-text" type="email" name="<?php echo esc_attr(self::CONTACT_EMAIL_OPTION); ?>" value="<?php echo esc_attr($contact_email); ?>"><p class="description">Áp dụng cho cả 6 loại form: Chung, Kinh doanh, Hỗ trợ, Đối tác, Truyền thông, Tuyển dụng.</p></td></tr>
                     <tr><th><label for="mentra-phone">Điện thoại</label></th><td><input id="mentra-phone" class="regular-text" name="<?php echo esc_attr(self::OPT); ?>[phone]" value="<?php echo esc_attr($v['phone']); ?>"></td></tr>
                 </table>
                 <?php submit_button(); ?>
@@ -521,28 +590,147 @@ final class Mentra_Vietnam_Core_99 {
         wp_send_json_success(['message' => 'Đăng ký thành công.']);
     }
 
+    /**
+     * Strips CR/LF/NUL so no user-supplied value can inject extra mail
+     * headers or split the subject line.
+     */
+    private static function safe_header_value($value) {
+        return trim(str_replace(["\r", "\n", "\0"], '', (string) $value));
+    }
+
+    private static function build_reply_to($name, $email) {
+        return 'Reply-To: ' . self::safe_header_value($name) . ' <' . $email . '>';
+    }
+
+    /**
+     * Shared tail of the form pipeline for every whitelisted form type:
+     * compose a server-generated subject (never a client-supplied prefix),
+     * send via wp_mail() (the only transport - no SMTP/PHPMailer config
+     * here), and return a standardized JSON response.
+     *
+     * Phase 6 will insert reCAPTCHA verification and rate limiting here,
+     * centrally, before the wp_mail() call - do not add per-handler checks.
+     */
+    private static function send_form_mail($type, $subject_line, array $body_lines, $reply_name, $reply_email) {
+        if (!isset(self::FORM_TYPES[$type])) {
+            wp_send_json_error(['message' => 'Loại biểu mẫu không hợp lệ.'], 400);
+        }
+        $to = self::contact_email();
+        $subject = self::safe_header_value(self::FORM_TYPES[$type] . ' - ' . $subject_line);
+        $body = implode("\n", $body_lines);
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
+            self::build_reply_to($reply_name, $reply_email),
+        ];
+
+        // --- Phase 6 insertion point: reCAPTCHA verification + rate limiting ---
+
+        $sent = wp_mail($to, $subject, $body, $headers);
+        if (!$sent) {
+            wp_send_json_error(['message' => 'Không thể gửi email. Vui lòng thử lại.'], 500);
+        }
+        wp_send_json_success(['message' => 'Đã gửi yêu cầu.']);
+    }
+
+    /**
+     * Centralized handler for the five business-contact form types
+     * (General/Sales/Support/Partnership/Media) sharing the single
+     * #contact-subject markup (templates/source/contact.html,
+     * contact@topic=sales.html, contact@topic=support.html,
+     * partnerships.html, media-inquiries.html). The dropdown's raw value is
+     * resolved against CONTACT_SUBJECT_MAP - a fixed whitelist, not
+     * trusted/free text - to pick the form type and subject prefix.
+     */
     public static function contact_ajax() {
         self::verify_public_nonce();
+
         $name = sanitize_text_field(wp_unslash($_POST['name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
         $company = sanitize_text_field(wp_unslash($_POST['company'] ?? ''));
-        $subject = sanitize_text_field(wp_unslash($_POST['subject'] ?? 'Liên hệ'));
+        $subject_raw = sanitize_text_field(wp_unslash($_POST['subject'] ?? ''));
         $message = sanitize_textarea_field(wp_unslash($_POST['message'] ?? ''));
-        if (!$name || !is_email($email) || !$message) {
-            wp_send_json_error(['message' => 'Vui lòng nhập đầy đủ họ tên, email và nội dung.'], 400);
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            wp_send_json_error(['message' => 'Vui lòng nhập họ tên hợp lệ.'], 400);
         }
-        $settings = self::settings();
-        $support_words = ['support', 'hỗ trợ', 'technical'];
-        $to = $settings['sales_email'];
-        foreach ($support_words as $word) {
-            if (stripos($subject, $word) !== false) { $to = $settings['support_email']; break; }
+        if (!$email || !is_email($email) || strlen($email) > 254) {
+            wp_send_json_error(['message' => 'Vui lòng nhập email hợp lệ.'], 400);
         }
-        if (!$to || !is_email($to)) { $to = get_option('admin_email'); }
-        $mail_subject = '[Mentra Việt Nam] ' . $subject . ' - ' . $name;
-        $body = "Họ tên: {$name}\nEmail: {$email}\nCông ty: {$company}\nChủ đề: {$subject}\n\n{$message}";
-        $sent = wp_mail($to, $mail_subject, $body, ['Reply-To: ' . $name . ' <' . $email . '>']);
-        if (!$sent) { wp_send_json_error(['message' => 'Không thể gửi email. Vui lòng thử lại.'], 500); }
-        wp_send_json_success(['message' => 'Đã gửi yêu cầu.']);
+        if (mb_strlen($company) > 150) {
+            wp_send_json_error(['message' => 'Tên công ty quá dài.'], 400);
+        }
+        if (mb_strlen($subject_raw) > 100) {
+            wp_send_json_error(['message' => 'Chủ đề không hợp lệ.'], 400);
+        }
+        if ($message === '' || mb_strlen($message) > 5000) {
+            wp_send_json_error(['message' => 'Vui lòng nhập nội dung (tối đa 5000 ký tự).'], 400);
+        }
+
+        $key = mb_strtolower(trim($subject_raw), 'UTF-8');
+        if (!array_key_exists($key, self::CONTACT_SUBJECT_MAP)) {
+            wp_send_json_error(['message' => 'Chủ đề không hợp lệ.'], 400);
+        }
+        $type = self::CONTACT_SUBJECT_MAP[$key];
+
+        $body = [
+            'Loại: ' . self::FORM_TYPES[$type],
+            'Họ tên: ' . $name,
+            'Email: ' . $email,
+            'Công ty: ' . ($company !== '' ? $company : '(không cung cấp)'),
+            'Chủ đề đã chọn: ' . ($subject_raw !== '' ? $subject_raw : '(không chọn)'),
+            '',
+            $message,
+        ];
+
+        self::send_form_mail($type, $name, $body, $name, $email);
+    }
+
+    /**
+     * Career form (templates/source/careers.html, #career-name/-email/
+     * -expertise/-position/-portfolio/-why) - fields match the existing
+     * markup exactly, no fields invented. This page previously had no
+     * backend at all.
+     */
+    public static function career_ajax() {
+        self::verify_public_nonce();
+
+        $name = sanitize_text_field(wp_unslash($_POST['name'] ?? ''));
+        $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
+        $expertise = sanitize_text_field(wp_unslash($_POST['expertise'] ?? ''));
+        $position = sanitize_text_field(wp_unslash($_POST['position'] ?? ''));
+        $portfolio = esc_url_raw(wp_unslash($_POST['portfolio'] ?? ''));
+        $why = sanitize_textarea_field(wp_unslash($_POST['why'] ?? ''));
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            wp_send_json_error(['message' => 'Vui lòng nhập họ tên hợp lệ.'], 400);
+        }
+        if (!$email || !is_email($email) || strlen($email) > 254) {
+            wp_send_json_error(['message' => 'Vui lòng nhập email hợp lệ.'], 400);
+        }
+        if (!in_array($expertise, self::CAREER_EXPERTISE, true)) {
+            wp_send_json_error(['message' => 'Vui lòng chọn lĩnh vực chuyên môn hợp lệ.'], 400);
+        }
+        if (mb_strlen($position) > 150) {
+            wp_send_json_error(['message' => 'Vị trí quan tâm quá dài.'], 400);
+        }
+        if ($portfolio !== '' && (strlen($portfolio) > 500 || !preg_match('#^https?://#i', $portfolio))) {
+            wp_send_json_error(['message' => 'Đường dẫn portfolio không hợp lệ.'], 400);
+        }
+        if ($why === '' || mb_strlen($why) > 5000) {
+            wp_send_json_error(['message' => 'Vui lòng chia sẻ lý do (tối đa 5000 ký tự).'], 400);
+        }
+
+        $body = [
+            'Họ tên: ' . $name,
+            'Email: ' . $email,
+            'Lĩnh vực chuyên môn: ' . $expertise,
+            'Vị trí quan tâm: ' . ($position !== '' ? $position : '(không cung cấp)'),
+            'Portfolio / LinkedIn: ' . ($portfolio !== '' ? $portfolio : '(không cung cấp)'),
+            '',
+            $why,
+        ];
+
+        self::send_form_mail('career', $name, $body, $name, $email);
     }
 }
 Mentra_Vietnam_Core_99::init();
