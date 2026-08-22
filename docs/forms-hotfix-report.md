@@ -132,13 +132,81 @@ Missing/failed CAPTCHA and rate-limiting all still correctly block before `wp_ma
 
 `php -l` full theme/plugin sweep: pass (no PHP was changed this hotfix). `node --check` on `mentra.js`: pass.
 
+---
+
+# Extension — Branding, Locked Contact Context, Success State, Acknowledgement Email
+
+Owner-approved frontend/UX requirements added on top of the hotfix above, same branch, no `Phase 8` work started.
+
+## Logo / branding
+
+Audited `wp-content/themes/mentra-vietnam/assets/` for an existing logo before touching anything — `mentra_logo.svg` and `white_mentra_logo.svg` already exist (the same file `header.php` uses site-wide); no new asset was downloaded or generated. Contact and Career forms now get a small header (`<img src="{theme}/assets/mentra_logo.svg" height:22px>` + a context-specific Vietnamese heading) inserted via JS immediately before the form — same "inject via JS, never edit the 40+ static-source HTML mirrors" pattern already established in this codebase (mobile menu, reCAPTCHA widget). Newsletter is untouched (section 21).
+
+## Route → locked contact type mapping
+
+| Route | `MENTRA_VN.contactType` | Badge label | Heading |
+|---|---|---|---|
+| `/lien-he/` | `general` | Chung | Liên hệ Mentra |
+| `/lien-he/?topic=sales` | `sales` | Kinh doanh | Liên hệ kinh doanh |
+| `/lien-he/?topic=support` | `support` | Hỗ trợ | Hỗ trợ Mentra |
+| `/doi-tac/` | `partnership` | Đối tác | Hợp tác cùng Mentra |
+| `/truyen-thong/` | `media` | Truyền thông | Liên hệ truyền thông |
+| `/tuyen-dung/` (Career, no dropdown to lock) | n/a | — | Ứng tuyển tại Mentra |
+
+All six confirmed live via the actual rendered page HTML (`mentra_vn_current_contact_type()` in `functions.php`). `/lien-he/?topic=<invalid>` confirmed falling back to `general` (same test), never displaying the raw invalid value anywhere.
+
+**Locked context UI**: on all five contact-style pages, the `#contact-subject` `<select>` is removed from the DOM (via `submit.parentNode`-relative JS, not an HTML edit) and replaced with a non-interactive "Loại yêu cầu" badge — confirmed via jsdom that the `<select>` genuinely no longer exists in the executed DOM, not just visually disabled. This removes the duplicate-choice UX on **every** contact-style page, including plain `/lien-he/` (locked to "Chung"), per the brief's "do not duplicate ... both as route context and as another required form-type dropdown."
+
+## Client tamper protection
+
+The locked badge is a UX affordance only — the **security boundary is server-side**: `Mentra_Vietnam_Core_99::route_locked_type()` re-derives the authoritative type from the request's `Referer` header (`wp_get_referer()`, WP core's own helper), which a same-origin `fetch()` sends automatically and a client-side HTML/JS edit cannot override. Verified live: a request with `Referer: .../doi-tac/` but a spoofed `subject=Sales` POST field was still classified and mailed as **Partnership** — the tampered field had zero effect. When the Referer is absent or unrecognized (e.g. a privacy-blocking browser, or a direct API call), the pre-existing Phase 5 `CONTACT_SUBJECT_MAP` whitelist is the fallback, unchanged — never weaker than before, only more precise when Referer is available.
+
+## Success interface
+
+On a successful AJAX response, the form (including its reCAPTCHA widget) is hidden and replaced by a dedicated success card: check-icon, "Gửi thành công" heading, thank-you message, and a "Về trang chủ" primary CTA. No auto-redirect. Focus moves to the card (`tabindex="-1"`, `.focus()`), which also carries `role="status"`/`aria-live="polite"` so screen readers announce it; the message and heading text are additionally the primary signal (not just the green success styling), satisfying the "must be understandable without relying only on color" requirement. Confirmed via jsdom: the card exists in the DOM (hidden) on page load and un-hides correctly.
+
+## Homepage CTA
+
+`href` is `MENTRA_VN.home` — the same value already localized from `trailingslashit(home_url('/'))` in `functions.php` (Phase 1-era), confirmed resolving to `http://mentra-vn.local/` in this environment and will resolve to the real production URL automatically after deployment, with zero code change. No optional secondary "Gửi yêu cầu khác" action was added — kept to the one required primary CTA per the brief's "do not add unnecessary actions if they clutter the UI."
+
+## Failure interface
+
+On any non-success response the form stays visible, the reCAPTCHA widget resets (`resetRecaptcha()`, unchanged from Phase 6), the submit button re-enables after its existing timeout, and a new inline `.mentra-form-error` element shows the actual returned message text (previously the Contact form only changed its button label to "Gửi lại" with no visible message text - Career already had `.career-form-status` for this, now extended the same idea to Contact). Entered field values are untouched either way (`form.reset()` still only runs on success).
+
+## Customer acknowledgement email (new feature this round - no prior implementation existed)
+
+`send_form_mail()` now: generates a short reference ID (`generate_reference_id()`, e.g. `MT-TK5JMR-8G7E`) per submission; sends the **admin notification as HTML** (previously plain text) using a shared, table-based, email-client-safe template (`render_html_email()`) that includes the theme's own logo via `get_template_directory_uri()` (never a hardcoded `mentra-vn.local`, never a filesystem path) with `alt="Mentra"`; and — **only after that admin send succeeds** — best-effort sends a **customer HTML acknowledgement** to the submitter's own (validated) email, carrying the **same reference ID**. The acknowledgement's own success/failure is never checked and never affects the JSON response.
+
+Verified live, both directions:
+
+| Scenario | Result |
+|---|---|
+| Admin mail forced to fail (temporary `pre_wp_mail` filter, removed after use) | `500` controlled JSON error; customer acknowledgement **never attempted** (confirmed via mail log - only one send logged) |
+| Admin succeeds, customer acknowledgement forced to fail | AJAX response still `{"success":true,...}` - the business inquiry was received, per the documented policy |
+| Six business types, real pipeline, real Referer per route | Admin + customer email pair confirmed for all six, **same reference ID on both halves of each pair** (e.g. `MT-TK5JMR-8G7E` on both the admin notification and the "Đã nhận được yêu cầu của bạn" customer email for that one submission) |
+
+Email body fields are limited to business-relevant information (name, email, company, message/career fields, form type) - no reCAPTCHA token, IP/hash, rate-limit transient, nonce, SMTP credential, or internal server path is ever included, matching the existing hardening. `Content-Type` changed from `text/plain` to `text/html` for both messages; the pre-existing CRLF/NUL header hardening (`safe_header_value()`/`build_reply_to()`) is untouched and applies identically.
+
+## Newsletter
+
+Not touched. Its compact footer UX (Phase 1-era button-label pattern) is unchanged, per the brief's explicit instruction.
+
+## Responsive
+
+No browser/screenshot tooling is available in this environment (a limitation documented consistently throughout this project). Reviewed the new CSS directly instead: no fixed pixel widths were introduced anywhere (the logo is a fixed *height*, not width; the badge and success card use `inline-flex`/`flex` with content-based sizing; the success message caps at `44ch`, a relative unit); every new element is a direct child of the same container the existing, already-responsive form/page layout already handles. The CTA reuses the existing `.btn-base.btn-primary` class verbatim (already responsive sitewide). This gives reasonable confidence at both 1440px and 390px, but actual rendered-pixel verification was not directly observable by Claude - recommend a quick owner visual pass, same as prior phases' documented visual-verification limitation.
+
+## Extended test matrix
+
+All six business types + Newsletter (unchanged) re-verified end-to-end through the real pipeline (nonce, live reCAPTCHA, live rate limiting, real WP Mail SMTP transport) after this extension's changes: security passes → admin HTML mail succeeds → customer acknowledgement attempted → AJAX success → (frontend, confirmed via jsdom) form hidden/success shown → CTA resolves to `home_url('/')`. Negative paths re-confirmed: missing token, invalid nonce, invalid `expertise` (Career) all correctly rejected with zero `wp_mail()` calls (mail-log line count unchanged across all three). Route regression (12 routes) and full `php -l`/`node --check` sweep: all pass, zero new warnings.
+
 ## Remaining owner action
 
-- **Verify real mailbox receipt directly** — `wp_mail()`/WP Mail SMTP report success for the Gmail-relay sends made during this hotfix (recipient now `nguyenvantai9632@gmail.com`), but Claude has no mailbox access; per Phase 7's standing policy this is stated as **APPLICATION DELIVERY ACCEPTED / MAILBOX RECEIPT REQUIRES OWNER VERIFICATION**, not claimed as confirmed inbox delivery.
+- **Verify real mailbox receipt directly** — `wp_mail()`/WP Mail SMTP report success for every send made during this hotfix and its extension (recipient/customer address `nguyenvantai9632@gmail.com`), but Claude has no mailbox access; per Phase 7's standing policy this is stated as **APPLICATION DELIVERY ACCEPTED / MAILBOX RECEIPT REQUIRES OWNER VERIFICATION**, not claimed as confirmed inbox delivery. Also check that the new HTML admin/customer emails render acceptably in a real inbox, including with images blocked (alt text "Mentra" is present as the fallback).
 - **Decide the real production recipient** before launch — `mentra_vn_contact_email` is currently the owner's personal test address (a deliberate, disclosed, DB-only change made during this hotfix), not a final value.
 - **Decide the real production SMTP identity** — the current WP Mail SMTP From Email/user is the owner's personal Gmail; confirm whether that's the intended long-term sender or a placeholder for a future business mailbox/provider.
 - If 2FA is enabled on that Gmail account, confirm the configured password is a Gmail **App Password**, not the account's normal login password (SMTP auth otherwise fails even with a correct host).
+- **Do a quick real-browser visual pass** at ~1440px and ~390px on `/lien-he/`, `/lien-he/?topic=sales`, `/doi-tac/`, `/truyen-thong/`, `/tuyen-dung/` - the CSS review above gives reasonable confidence but was not visually observed by Claude.
 
 ## Hotfix status
 
-**RESOLVED.** Both reported symptoms reproduced with a real, concrete root cause each, fixed/corrected, and verified through the real pipeline. No PHP fatal was ever occurring — the "500" was always a controlled response reacting to a real (now-corrected) SMTP configuration issue. Phase 8 may resume once the owner confirms the fix in their own browser.
+**RESOLVED**, extension **COMPLETE**. Both originally reported symptoms (invisible reCAPTCHA, AJAX 500) were reproduced with a real, concrete root cause each, fixed/corrected, and verified through the real pipeline - no PHP fatal was ever occurring. The owner-approved branding/locked-context/success-state/acknowledgement-email extension is implemented and verified end-to-end for all six business form types, with client tamper-protection confirmed live. Phase 8 may resume once the owner confirms the fix and new UX in their own browser.
