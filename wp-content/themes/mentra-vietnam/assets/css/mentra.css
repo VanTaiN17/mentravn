@@ -999,20 +999,36 @@ body{font-optical-sizing:auto}
   color: var(--ink-secondary) !important;
 }
 
-/* Neutralize marquee-specific fade gradients */
+/* Enable marquee-specific fade gradients */
 .home-backed-marquee-section .home-backed-marquee-fade {
   position: relative !important;
   width: 100% !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 .home-backed-marquee-section .home-backed-marquee-fade::before,
 .home-backed-marquee-section .home-backed-marquee-fade::after {
-  display: none !important;
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 72px !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::before {
+  left: 0 !important;
+  background: linear-gradient(90deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::after {
+  right: 0 !important;
+  background: linear-gradient(270deg, var(--surface-2), rgba(233, 235, 230, 0)) !important;
 }
 
-/* Neutralize marquee scrolling track */
+/* Enable marquee scrolling track */
 .home-backed-marquee-section .home-backed-marquee {
-  overflow: visible !important;
+  position: relative !important;
+  overflow: hidden !important;
   width: 100% !important;
   mask-image: none !important;
   -webkit-mask-image: none !important;
@@ -1021,29 +1037,29 @@ body{font-optical-sizing:auto}
 .home-backed-marquee-section .home-backed-marquee-track {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
   align-items: center !important;
-  width: 100% !important;
-  animation: none !important;
-  transform: none !important;
-  gap: 28px 40px !important;
+  width: max-content !important;
+  animation: mentra-marquee 30s linear infinite !important;
+  transform: translateZ(0) !important;
+  gap: 40px !important;
 }
 
 .home-backed-marquee-section .home-backer-logo-strip {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
   align-items: center !important;
-  width: 100% !important;
+  width: auto !important;
   padding: 0 !important;
-  gap: 28px 40px !important;
+  gap: 40px !important;
 }
 
-/* Hide the duplicate logo strip used for marquee looping */
+/* Show the duplicate logo strip used for marquee looping */
 .home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
-  display: none !important;
+  display: flex !important;
 }
 
 /* Style individual logo items as clean transparent inline elements */
@@ -1121,10 +1137,6 @@ body{font-optical-sizing:auto}
   .home-backed-marquee-section {
     padding: 24px var(--container-px) !important;
   }
-  .home-backed-marquee-section .home-backed-marquee-track,
-  .home-backed-marquee-section .home-backer-logo-strip {
-    gap: 20px 32px !important;
-  }
 }
 
 @media (max-width: 767px) {
@@ -1138,7 +1150,11 @@ body{font-optical-sizing:auto}
   }
   .home-backed-marquee-section .home-backed-marquee-track,
   .home-backed-marquee-section .home-backer-logo-strip {
-    gap: 16px 20px !important;
+    gap: 32px !important;
+  }
+  .home-backed-marquee-section .home-backed-marquee-fade::before,
+  .home-backed-marquee-section .home-backed-marquee-fade::after {
+    width: 34px !important;
   }
   .home-backed-marquee-section .home-backer-logo-item {
     gap: 4px !important;
