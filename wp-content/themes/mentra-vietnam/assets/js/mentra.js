@@ -46,6 +46,53 @@
     if(typeof grecaptcha!=='undefined'&&id!==undefined&&id!==null){ try{ grecaptcha.reset(id); }catch(_){} }
   }
 
+  // Forms UX hotfix: shared branding/locked-context/success-state helpers
+  // for the Contact and Career forms only - Newsletter is not a
+  // business-contact form and is intentionally left unchanged.
+  function addFormHeader(form,heading){
+    if(qs(':scope > .mentra-form-header',form.parentNode)) return;
+    const header=document.createElement('div');
+    header.className='mentra-form-header';
+    header.innerHTML='<img src="'+MENTRA_VN.logo+'" alt="Mentra" class="mentra-form-logo"><h2 class="mentra-form-heading"></h2>';
+    qs('.mentra-form-heading',header).textContent=heading;
+    form.parentNode.insertBefore(header,form);
+  }
+  function addLockedType(form,label){
+    const select=qs('#contact-subject',form);
+    if(!select||!label) return;
+    const wrapper=select.parentNode;
+    wrapper.innerHTML='<label class="mentra-locked-type-label">Loại yêu cầu</label><div class="mentra-locked-type" aria-readonly="true"></div>';
+    qs('.mentra-locked-type',wrapper).textContent=label;
+  }
+  function addFormError(form){
+    let el=qs('.mentra-form-error',form);
+    if(!el){el=document.createElement('p');el.className='mentra-form-error';el.setAttribute('role','alert');form.appendChild(el);}
+    return el;
+  }
+  function addSuccessCard(form){
+    const next=form.nextElementSibling;
+    if(next&&next.classList&&next.classList.contains('mentra-form-success')) return next;
+    const card=document.createElement('div');
+    card.className='mentra-form-success';
+    card.setAttribute('tabindex','-1');
+    card.setAttribute('role','status');
+    card.setAttribute('aria-live','polite');
+    card.hidden=true;
+    card.innerHTML=
+      '<div class="mentra-form-success-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'+
+      '<h2 class="mentra-form-success-heading">Gửi thành công</h2>'+
+      '<p class="mentra-form-success-message">Cảm ơn bạn đã liên hệ với Mentra. Chúng tôi đã nhận được thông tin của bạn và sẽ phản hồi trong thời gian sớm nhất.</p>'+
+      '<a class="btn-base btn-primary mentra-form-success-cta" href="'+MENTRA_VN.home+'">Về trang chủ</a>';
+    form.parentNode.insertBefore(card,form.nextSibling);
+    return card;
+  }
+  function showFormSuccess(form){
+    const card=addSuccessCard(form);
+    form.hidden=true;
+    card.hidden=false;
+    card.focus();
+  }
+
   function initHeader(){
     const header=qs('.site-header'); if(!header) return;
     const mobileButton=qs('button[aria-label="Mở menu"],button[aria-label="Open menu"]',header);
@@ -583,6 +630,10 @@
   function initContact(){
     qsa('form[data-mentra-contact="1"]').forEach(form=>{
       const submit=qs('button[type="submit"]',form);
+      addFormHeader(form,MENTRA_VN.contactTypeHeading||'Liên hệ Mentra');
+      if(MENTRA_VN.contactType) addLockedType(form,MENTRA_VN.contactTypeLabel);
+      const errorEl=addFormError(form);
+      addSuccessCard(form);
       ensureRecaptchaWidget(form);
       form.addEventListener('submit',async e=>{
         e.preventDefault();
@@ -595,15 +646,17 @@
           if(email && !email.checkValidity()) email.reportValidity();
           return;
         }
+        errorEl.textContent='';
         const old=submit?submit.innerHTML:''; if(submit){submit.disabled=true;submit.textContent='Đang gửi…';}
         try{
-          const body=new URLSearchParams({action:'mentra_vn_contact_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),company:company?company.value.trim():'',subject:subject?subject.value:'Liên hệ',message:message.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
+          const body=new URLSearchParams({action:'mentra_vn_contact_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),company:company?company.value.trim():'',subject:subject?subject.value:'',message:message.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
-          if(submit) submit.textContent=j.success?'Đã gửi':'Gửi lại';
           resetRecaptcha(form);
-          if(j.success){form.reset();}
-        }catch(_){if(submit)submit.textContent='Gửi lại';resetRecaptcha(form);}
+          if(j.success){ showFormSuccess(form); return; }
+          if(submit) submit.textContent='Gửi lại';
+          errorEl.textContent=(j&&j.data&&j.data.message)?j.data.message:'Có lỗi xảy ra, vui lòng thử lại.';
+        }catch(_){if(submit)submit.textContent='Gửi lại';errorEl.textContent='Có lỗi xảy ra, vui lòng thử lại.';resetRecaptcha(form);}
         setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
       });
     });
@@ -615,6 +668,8 @@
       const submit=qs('.career-submit',form)||qs('button[type="submit"]',form);
       let status=qs('.career-form-status',form);
       if(!status){status=document.createElement('p');status.className='career-form-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');form.appendChild(status);}
+      addFormHeader(form,'Ứng tuyển tại Mentra');
+      addSuccessCard(form);
       ensureRecaptchaWidget(form);
       form.addEventListener('submit',async e=>{
         e.preventDefault();
@@ -636,11 +691,11 @@
           const body=new URLSearchParams({action:'mentra_vn_career_ajax',nonce:MENTRA_VN.nonce,name:name.value.trim(),email:email.value.trim(),expertise:expertise.value,position:position?position.value.trim():'',portfolio:portfolio?portfolio.value.trim():'',why:why.value.trim(),g_recaptcha_response:getRecaptchaResponse(form)});
           const r=await fetch(MENTRA_VN.ajax,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});
           const j=await r.json();
-          if(submit) submit.textContent=j.success?'Đã gửi':'Gửi lại';
-          status.textContent=(j&&j.data&&j.data.message)?j.data.message:(j.success?'Đã gửi hồ sơ ứng tuyển.':'Có lỗi xảy ra, vui lòng thử lại.');
-          status.classList.add(j.success?'is-success':'is-error');
           resetRecaptcha(form);
-          if(j.success){form.reset();}
+          if(j.success){ showFormSuccess(form); return; }
+          if(submit) submit.textContent='Gửi lại';
+          status.textContent=(j&&j.data&&j.data.message)?j.data.message:'Có lỗi xảy ra, vui lòng thử lại.';
+          status.classList.add('is-error');
         }catch(_){if(submit)submit.textContent='Gửi lại';status.textContent='Có lỗi xảy ra, vui lòng thử lại.';status.classList.add('is-error');resetRecaptcha(form);}
         setTimeout(()=>{if(submit){submit.innerHTML=old;submit.disabled=false}},1800);
       });

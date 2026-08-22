@@ -1645,6 +1645,24 @@ body{font-optical-sizing:auto}
    doesn't collide with the field above/below it in Newsletter/Contact/Career. */
 .mentra-recaptcha{margin:6px 0 18px;max-width:100%;overflow:hidden}
 
+/* Forms UX hotfix: logo/heading header, locked-context badge, inline error
+   text, and success state for Contact/Career - reuses existing tokens
+   (--border-subtle, --surface-0, --ink-*, --brand, --error, --radius-xl)
+   and the existing .btn-base.btn-primary button styling, no new visual
+   system introduced. Newsletter is untouched. */
+.mentra-form-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.mentra-form-logo{height:22px;width:auto;display:block;flex-shrink:0}
+.mentra-form-heading{margin:0;font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--ink-primary)}
+.mentra-locked-type-label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink-primary)}
+.mentra-locked-type{display:inline-flex;align-items:center;padding:9px 16px;border-radius:999px;background:var(--surface-1);border:1px solid var(--border-subtle);color:var(--ink-primary);font-size:14px;font-weight:600}
+.mentra-form-error{margin:10px 0 0;font-size:.92rem;line-height:1.45;color:var(--error);min-height:1em}
+.mentra-form-success{display:none;flex-direction:column;align-items:flex-start;gap:10px;padding:32px 28px;border-radius:var(--radius-xl,24px);background:var(--surface-0);border:1px solid var(--border-subtle);outline:0}
+.mentra-form-success:not([hidden]){display:flex}
+.mentra-form-success-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:999px;background:var(--brand);color:#fff}
+.mentra-form-success-heading{margin:4px 0 0;font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--ink-primary)}
+.mentra-form-success-message{margin:0;font-size:14px;line-height:1.6;color:var(--ink-secondary);max-width:44ch}
+.mentra-form-success-cta{margin-top:6px}
+
 /* Newsroom tabs restored for the static WordPress mirror. */
 .mentra-vn-blogs #mentra-newsroom-grid [data-newsroom-item][hidden]{display:none!important}
 .mentra-vn-blogs .newsroom-press-media{display:flex;align-items:center;justify-content:center;background:var(--surface-2);padding:clamp(28px,4vw,58px)}
