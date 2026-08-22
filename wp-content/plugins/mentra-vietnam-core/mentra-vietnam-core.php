@@ -642,6 +642,119 @@ final class Mentra_Vietnam_Core_99 {
         return trim((string) get_option(self::RECAPTCHA_SITE_KEY_OPTION, ''));
     }
 
+    /**
+     * REMOTE_ADDR only - deliberately ignores X-Forwarded-For/CF-Connecting-IP/
+     * X-Real-IP, since this site has no configured trusted-proxy in front of
+     * it and those headers are trivially spoofable without one. Returns ''
+     * for anything that doesn't parse as a valid IP (never trust the raw
+     * superglobal value further than that).
+     */
+    private static function client_ip() {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? trim((string) $_SERVER['REMOTE_ADDR']) : '';
+        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '';
+    }
+
+    /**
+     * The raw IP is never persisted anywhere (not in transients, options, or
+     * logs) - only this salted hash (via wp_hash(), which is keyed off the
+     * site's own AUTH salts) is ever used as rate-limit key material.
+     */
+    private static function client_hash() {
+        return substr(wp_hash('mentra_vn_client|' . self::client_ip()), 0, 24);
+    }
+
+    /**
+     * Rate-limit transient key, scoped by client identity hash + a
+     * whitelisted form type string (never raw user input - callers always
+     * pass a value from FORM_TYPES or the literal 'newsletter').
+     */
+    private static function rate_limit_key($type) {
+        return 'mentra_rl_' . substr(wp_hash('mentra_vn_rate|' . $type . '|' . self::client_hash()), 0, 20);
+    }
+
+    /**
+     * Server-side rate limit: RATE_LIMIT_MAX attempts per RATE_LIMIT_WINDOW
+     * seconds, per client-hash + form-type. Implemented as a WP transient
+     * counter (no custom DB table). This is a sliding window - each
+     * accepted attempt within the window refreshes the transient's expiry,
+     * so a client must go quiet for the full window to reset, rather than a
+     * strict fixed calendar window; see docs/phase-6-report.md. Returns
+     * false (caller must reject) once the count reaches the max.
+     */
+    private static function check_rate_limit($type) {
+        $key = self::rate_limit_key($type);
+        $count = get_transient($key);
+        $count = ($count === false) ? 0 : (int) $count;
+        if ($count >= self::RATE_LIMIT_MAX) {
+            return false;
+        }
+        set_transient($key, $count + 1, self::RATE_LIMIT_WINDOW);
+        return true;
+    }
+
+    /**
+     * Raw call to Google's siteverify endpoint. Assumes the caller has
+     * already confirmed reCAPTCHA is enabled and the token is non-empty.
+     * Fails closed (returns false) on every abnormal condition: HTTP
+     * transport error, non-200 response, malformed/non-JSON body, or a
+     * JSON body that isn't success===true. Never returns true on anything
+     * ambiguous.
+     */
+    private static function verify_recaptcha_token($token) {
+        $secret = trim((string) get_option(self::RECAPTCHA_SECRET_KEY_OPTION, ''));
+        if ($secret === '') { return false; }
+
+        $args = ['secret' => $secret, 'response' => $token];
+        $ip = self::client_ip();
+        if ($ip !== '') { $args['remoteip'] = $ip; }
+
+        $response = wp_remote_post(self::RECAPTCHA_VERIFY_URL, [
+            'timeout' => 8,
+            'body' => $args,
+        ]);
+        if (is_wp_error($response)) { return false; }
+        if ((int) wp_remote_retrieve_response_code($response) !== 200) { return false; }
+
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        if (!is_array($data) || json_last_error() !== JSON_ERROR_NONE) { return false; }
+
+        return isset($data['success']) && $data['success'] === true;
+    }
+
+    /**
+     * Centralized CAPTCHA gate. No-op (returns normally) when reCAPTCHA is
+     * not configured - see recaptcha_admin_notice() for the admin-facing
+     * warning in that state; this function never pretends a check happened
+     * when it didn't. Once configured, this fails closed: a missing token,
+     * a failed Google verification, an HTTP error, or a malformed response
+     * all end the request the same way (wp_send_json_error), never falling
+     * through to the caller.
+     */
+    private static function enforce_recaptcha($token) {
+        if (!self::recaptcha_enabled()) { return; }
+        $token = trim((string) $token);
+        if ($token === '' || !self::verify_recaptcha_token($token)) {
+            $message = ($token === '')
+                ? 'Vui lòng xác nhận bạn không phải là robot.'
+                : 'Không thể xác minh reCAPTCHA. Vui lòng thử lại.';
+            wp_send_json_error(['message' => $message], 400);
+        }
+    }
+
+    /**
+     * Single call site every handler uses, in pipeline order (rate limit,
+     * then CAPTCHA) - see docs/form-security.md. $type must already be a
+     * normalized/whitelisted value (one of FORM_TYPES or 'newsletter'),
+     * never raw user input, so it can't be used to construct an arbitrary
+     * transient key.
+     */
+    private static function enforce_security($type, $token) {
+        if (!self::check_rate_limit($type)) {
+            wp_send_json_error(['message' => 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.'], 429);
+        }
+        self::enforce_recaptcha($token);
+    }
+
     public static function newsletter() {
         self::verify_public_nonce();
         $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
