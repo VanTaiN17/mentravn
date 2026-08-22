@@ -1,8 +1,8 @@
 # Mentra Vietnam — Current Project Status
 
 Last updated: 2026-08-22
-Current stable phase: Visual Fidelity Milestone — OWNER APPROVED / COMPLETE. Frontend page-building work is closed.
-Current branch: `fix/full-visual-fidelity` (based on `fix/visual-fidelity`, based on `feature/news-posts`) — this branch holds the owner-approved frontend.
+Current stable phase: Phase 5 — Forms Architecture. PASS (not yet pushed — see Git section below).
+Current branch: `feature/forms-architecture` (based on `fix/full-visual-fidelity`, the owner-approved frontend branch).
 Git remote: `origin` = `https://github.com/VanTaiN17/mentravn.git`
 Push status: see Git section below.
 
@@ -29,7 +29,10 @@ Status: superseded by Phase 4.6. Correctly diagnosed the root cause (invented cl
 Status: PASS (superseded procedurally by owner sign-off below, but the technical work stands). Fixed what Phase 4.5 got wrong by using **real, exact CSS** instead of guesses — extracted directly from the live production site's compiled stylesheet (Mentra Live's `product-detail-*`, MentraOS's `green-grid-promo`/`os-download-promo*`) or from embedded per-page `<style>` blocks in the WGET capture (Even Realities' entire ~40-class component system, ~509 lines, previously 100% unported). Removed the invented Mentra Live charging section entirely and built a real, separate Infinity Cable product page (`/products/mentra-live-charging-cable/`, new WooCommerce product SKU `MENTRA-INFINITY-CABLE`). Fixed Socials' platform-card hover. Audited all 20 top-level routes for the same failure pattern. A same-day addendum found and fixed 44 uncompiled bracket-notation Tailwind classes and a stale cache-version string. Full detail: `docs/phase-4.6-report.md`, `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`.
 
 ### Visual Fidelity Milestone — Owner-Approved Finishing Pass (Antigravity)
-Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the remaining frontend visual work directly together with Antigravity (a separate coding tool) and explicitly approved the resulting frontend state — this supersedes the earlier "VISUAL VERIFICATION PENDING" status; owner confirmation is authoritative regardless of whether every pixel was independently re-verified by Claude. 20 additional commits on `fix/full-visual-fidelity` (`6f25c70`..`9aa4d5b`), reviewed and kept as-is per instruction not to reopen approved visual work absent a technical breakage. Notable changes: Mentra Live gallery thumbnail switching + layout alignment fixes, Even Realities icon/typography fixes, Socials hover polish, a new `/tai-ung-dung/` (app download) page replacing the old `/get-mentra` → sales-contact redirect with a real download page, MentraOS logo sizing, comparison-page (`/so-sanh/`) FAQ interactivity + price removal from CTAs, captions-page (`/phu-de/`) FAQ content/styling, and several `MENTRA_VN_THEME_VERSION` cache-bumps (final: `3.14.0`). Reviewed for secrets/debug code/hardcoded local paths (none found) and re-validated `php -l`/`node --check` (both clean) before this handoff; a mechanical cleanup commit (`chore: strip stray UTF-8 BOM from static-source HTML files`) was added on top. **Live-route HTTP verification could not be performed during this handoff pass** — the local Local-by-Flywheel site was down (nginx up, PHP-FPM/MySQL not running) at review time; this is an environment/infrastructure state issue, not a code regression (confirmed: even the homepage 502'd, unrelated to any specific change). Recommend a quick route smoke-test once the local site is running again. **Frontend page-building milestone is now closed.**
+Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the remaining frontend visual work directly together with Antigravity (a separate coding tool) and explicitly approved the resulting frontend state — this supersedes the earlier "VISUAL VERIFICATION PENDING" status; owner confirmation is authoritative regardless of whether every pixel was independently re-verified by Claude. 20 additional commits on `fix/full-visual-fidelity` (`6f25c70`..`9aa4d5b`), reviewed and kept as-is per instruction not to reopen approved visual work absent a technical breakage. Notable changes: Mentra Live gallery thumbnail switching + layout alignment fixes, Even Realities icon/typography fixes, Socials hover polish, a new `/tai-ung-dung/` (app download) page replacing the old `/get-mentra` → sales-contact redirect with a real download page, MentraOS logo sizing, comparison-page (`/so-sanh/`) FAQ interactivity + price removal from CTAs, captions-page (`/phu-de/`) FAQ content/styling, and several `MENTRA_VN_THEME_VERSION` cache-bumps (final: `3.14.0`). Reviewed for secrets/debug code/hardcoded local paths (none found) and re-validated `php -l`/`node --check` (both clean) before this handoff; a mechanical cleanup commit (`chore: strip stray UTF-8 BOM from static-source HTML files`) was added on top. A subsequent route smoke-test (done during Phase 5, once the local site was back up) confirmed no regression from this pass. **Frontend page-building milestone is now closed.**
+
+### Phase 5 — Forms Architecture
+Status: PASS. Built the backend for all six business-contact form types (General, Sales, Support, Partnership, Media, Career) plus reviewed Newsletter (unchanged). Unified recipient routing to one configurable option, `mentra_vn_contact_email` (default `contact@domain.vn`, editable at Settings → Mentra Việt Nam), replacing the old `sales_email`/`support_email` split. Added `career_ajax()` — the Career page (`/tuyen-dung/`) previously had no backend at all. Rewrote `contact_ajax()` to whitelist the `#contact-subject` dropdown's fixed values into a form type (rejecting anything unrecognized) instead of the old fragile keyword-matching. Fixed a genuine pre-existing routing bug: `/lien-he/?topic=sales` and `/lien-he/?topic=support` were silently ignoring the query string and always rendering plain `/lien-he/` — now they serve the matching pre-selected static file that already existed on disk unused. Server-generated mail subjects (never client-supplied), CRLF/header-injection hardening on Reply-To, per-field max lengths, no new database/CPT for contact submissions (mail-only, as required). No reCAPTCHA (Phase 6) or SMTP (Phase 7) added. Full six-type test matrix (recipient/subject/body/headers) run against the live local site via a temporary `wp_mail`-intercepting harness (removed after use, not a deliverable). Full detail: `docs/phase-5-report.md`, `docs/forms-inventory.md`. **Not yet pushed to origin** — awaiting explicit push authorization, per phase discipline.
 
 ## Current architecture
 
@@ -46,14 +49,15 @@ Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the 
 7. **Exactly 6 press items remain static/external**: `wp-content/themes/mentra-vietnam/data/press.php` → `mentra_vn_press_items()`. Never WordPress Posts (verified 0 in `wp_posts`).
 8. **Article canonical URL pattern**: `/tin-tuc/{slug}/` — scoped rewrite rule + `post_type_link` filter in `functions.php`, only for posts with `_mentra_vn_article=1`.
 9. **Legacy article URLs**: `/blogs/blog/{slug}/` 301-redirects to the canonical `/tin-tuc/{slug}/`. `templates/source/blogs/blog/*.html` (16 files) and `blogs.html`/`blog.html` are kept on disk as reference/dormant only.
-10. **Forms have NOT yet been rebuilt**: current Newsletter/Contact AJAX handlers (Phase-1-era, `wp_ajax_mentra_vn_newsletter` / `wp_ajax_mentra_vn_contact_ajax`) still work as-is, nonce-protected, but route via a `sales_email`/`support_email` split in plugin settings, not a unified address. This is pre-existing functionality, not a Phase 4 deliverable — Phase 5 scope.
-11. **Career form backend is still pending** — page renders, submission does nothing.
-12. **reCAPTCHA v2 is still pending** — no bot protection on any form yet.
-13. **Business-contact forms will eventually all use `contact@domain.vn`** (not yet unified).
+10. **Forms backend (Phase 5, PASS)**: `wp_ajax_mentra_vn_newsletter` (unchanged), `wp_ajax_mentra_vn_contact_ajax` (General/Sales/Support/Partnership/Media, rewritten), and the new `wp_ajax_mentra_vn_career_ajax` all route through a shared `send_form_mail()` pipeline in the plugin. All nonce-protected (`mentra_vn_public`). See `docs/forms-inventory.md`/`docs/phase-5-report.md`.
+11. **Career form backend exists** (Phase 5) — `/tuyen-dung/` now sends real mail via `mentra_vn_career_ajax`, validated against the form's real fields only.
+12. **reCAPTCHA v2 is still pending** — no bot protection on any form yet (Phase 6 scope; insertion point already marked in `send_form_mail()`).
+13. **Business-contact forms all use `contact@domain.vn`** via the single `mentra_vn_contact_email` option (Phase 5) — unified, editable in wp-admin.
 14. **SMTP transport will be WP Mail SMTP** when configured — do not build custom SMTP transport.
 15. **Legal-policy bodies** (Privacy/Terms/Shipping/Refund) still require human Vietnam-specific legal review before content changes; routing/slug fixes are fine.
 16. **`/tai-ung-dung/` app-download page** (added during the owner/Antigravity finishing pass): a new static-source-mirror page (`templates/source/get.html`, source key `get`), replacing the old `/get-mentra` behavior — that legacy path now 301-redirects to `/tai-ung-dung/` instead of to sales contact. No price/cart content.
 17. **Frontend visual page-building milestone is CLOSED**, owner-approved. Any further frontend work should be scoped as a new, deliberate task, not assumed to be still-open Phase 4.x cleanup.
+18. **Forms architecture (Phase 5) is CLOSED, PASS.** `docs/forms-inventory.md` is the field-level reference for every form; `docs/phase-5-report.md` has the full test matrix. `/lien-he/`'s `?topic=` query handling was fixed as part of this phase (see item 10 above and the Phase 5 entry in Completed Phases).
 
 ## Current important IDs/data
 
@@ -62,6 +66,7 @@ Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the 
 - News category: `Bài viết`, slug `bai-viet` — look up by slug, do not hardcode the term ID.
 - Article identity meta: `_mentra_vn_article=1`, `_mentra_vn_legacy_slug`, `_mentra_vn_article_authors` (array of `['name','role','avatar']`).
 - Press data source: `wp-content/themes/mentra-vietnam/data/press.php` — never query `wp_posts` for press content.
+- Contact-form recipient: WordPress option `mentra_vn_contact_email` (default `contact@domain.vn`), editable at Settings → Mentra Việt Nam — always read via `contact_email()` in the plugin, never hardcode the address.
 
 ## Current news state (Phase 4 verified)
 
@@ -82,10 +87,10 @@ Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the 
 
 ## Known deferred work
 
-- Contact form recipient unification to a single `contact@domain.vn`
-- Career application form backend (Phase 5 candidate)
-- Google reCAPTCHA v2 + server-side verification (Phase 5 candidate)
-- WP Mail SMTP configuration
+- ~~Contact form recipient unification to a single `contact@domain.vn`~~ — **DONE** in Phase 5 (`mentra_vn_contact_email` option).
+- ~~Career application form backend~~ — **DONE** in Phase 5 (`mentra_vn_career_ajax`).
+- Google reCAPTCHA v2 + server-side verification (Phase 6 candidate — insertion point already marked in `send_form_mail()`)
+- WP Mail SMTP configuration (Phase 7 candidate)
 - Legal content review (Privacy/Terms/Shipping/Refund body text) — includes the "Đổi trả & bảo hành" block on `/mentra-live/`, flagged inline
 - ~~Manual browser visual verification~~ — **DONE.** The owner completed remaining visual work with Antigravity and explicitly approved the frontend. Closed, do not reopen.
 - A live-route HTTP smoke-test is still recommended once the local server is confirmed running (it was down — PHP-FPM/MySQL not started — during the final handoff review; see the Visual Fidelity Milestone entry above).
@@ -107,7 +112,7 @@ Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the 
 
 ## Next planned phase
 
-**Phase 5 — Forms Architecture** (unify contact routing to `contact@domain.vn`, build the Career form backend, add reCAPTCHA v2 + server-side verification, configure WP Mail SMTP). The frontend visual-fidelity precondition is now satisfied — owner approved. Forms has not started.
+**Phase 6 — reCAPTCHA v2 + server-side verification** (bot protection on the six business-contact forms; insertion point already marked in `send_form_mail()` in the plugin). Then **Phase 7 — WP Mail SMTP configuration**. Phase 5 (Forms Architecture) is complete/PASS but its branch (`feature/forms-architecture`) has not yet been pushed to origin.
 
 **DO NOT START WITHOUT USER/PROJECT-MANAGER INSTRUCTION.**
 
@@ -115,8 +120,9 @@ Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the 
 
 1. `CLAUDE.md`
 2. `docs/project-status.md` (this file)
-3. `docs/phase-4.6-report.md` (latest phase report — the owner-approved Antigravity finishing pass has no separate phase report; see this file's Completed Phases section above for its summary)
-4. `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md` (historical reference only — frontend milestone is closed, do not treat their "pending" language as current)
-5. The relevant specialized document for whatever phase is being started next (e.g. `docs/route-map.csv` for routing, `docs/news-migration-manifest.md` for further news work)
+3. `docs/phase-5-report.md` (latest phase report)
+4. `docs/forms-inventory.md` (field-level reference for every form, needed before touching Phase 6/7)
+5. `docs/phase-4.6-report.md`, `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md` (historical reference only — frontend milestone is closed, do not treat their "pending" language as current)
+6. The relevant specialized document for whatever phase is being started next (e.g. `docs/route-map.csv` for routing, `docs/news-migration-manifest.md` for further news work)
 
 Do not reread every historical document unless the task genuinely requires it.
