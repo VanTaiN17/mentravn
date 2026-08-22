@@ -854,8 +854,8 @@ body.mentra-menu-open{overflow:hidden}
   .home-partner-card .home-partner-logo{max-height:32px!important;max-width:120px!important}
   .home-partner-card .home-partner-name{font-size:13px!important}
 
-  .home-work-editorial{display:grid!important;grid-template-columns:minmax(0,1fr) 82px!important;column-gap:14px!important;row-gap:8px!important}
-  .home-work-editorial-chart{grid-column:2!important;grid-row:1/span 8!important}
+  .home-work-editorial{display:flex!important;flex-direction:column!important;gap:24px!important}
+  .home-work-editorial-chart{order:-1!important;margin:0 auto!important;width:100%!important;display:flex!important;justify-content:center!important}
 
   .home-backed-marquee-fade::before,.home-backed-marquee-fade::after{width:24px}
   .home-backed-marquee-section .home-backer-logo-item{min-width:112px!important;height:52px!important;border-radius:11px!important;padding:8px 12px!important}
