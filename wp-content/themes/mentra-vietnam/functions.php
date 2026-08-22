@@ -96,6 +96,20 @@ function mentra_vn_get_source_key() {
     if (is_front_page() || is_home()) { return 'index'; }
     if (is_page()) {
         $slug = get_post_field('post_name', get_queried_object_id());
+        // /lien-he/?topic=sales and /lien-he/?topic=support serve the
+        // matching pre-selected static variant (both files already exist
+        // on disk from the original WGET capture). Query value is
+        // whitelisted against $topic_map, never used to build a path
+        // directly, and any other/unrecognized value falls back to the
+        // plain contact page.
+        if ($slug === 'lien-he' || $slug === 'contact') {
+            $topic = isset($_GET['topic']) ? sanitize_key(wp_unslash($_GET['topic'])) : '';
+            $topic_map = ['sales' => 'contact@topic=sales', 'support' => 'contact@topic=support'];
+            if (isset($topic_map[$topic]) && mentra_vn_source_exists($topic_map[$topic])) {
+                return $topic_map[$topic];
+            }
+            return 'contact';
+        }
         $map = mentra_vn_source_map();
         if (isset($map[$slug])) { return $map[$slug]; }
     }
