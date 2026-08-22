@@ -1,10 +1,10 @@
 # Mentra Vietnam — Current Project Status
 
-Last updated: 2026-08-21
-Current stable phase: Phase 4.6 — Full Visual Fidelity Correction (TECHNICAL READY FOR OWNER VISUAL REVIEW)
-Current branch: `fix/full-visual-fidelity` (based on `fix/visual-fidelity`, based on `feature/news-posts`)
+Last updated: 2026-08-22
+Current stable phase: Visual Fidelity Milestone — OWNER APPROVED / COMPLETE. Frontend page-building work is closed.
+Current branch: `fix/full-visual-fidelity` (based on `fix/visual-fidelity`, based on `feature/news-posts`) — this branch holds the owner-approved frontend.
 Git remote: `origin` = `https://github.com/VanTaiN17/mentravn.git`
-Push status: nothing pushed to GitHub yet.
+Push status: see Git section below.
 
 **Phase reports are historical records.** If an earlier phase's finding was later corrected by a newer phase, the newer phase is authoritative — do not blindly reuse an old finding. Example: Phase 1's audit said `accessibility.html` was 100% English; Phase 2 found it was already translated. Trust the correction.
 
@@ -26,7 +26,10 @@ Status: PASS. All 16 owned articles migrated to real `post_type=post` (translate
 Status: superseded by Phase 4.6. Correctly diagnosed the root cause (invented classnames with no matching CSS) and rebuilt Mentra Live/MentraOS structurally, but the CSS it wrote was hand-approximated guesswork, not a verified reproduction — the owner confirmed in a real browser that the pages still looked wrong. Also mistakenly modeled "Infinity Cable" as an anchor/section inside Mentra Live rather than its own product page. Kept as a historical record; do not reuse its CSS values or its `#charging` decision without re-checking against Phase 4.6. Full detail: `docs/phase-4.5-report.md`.
 
 ### Phase 4.6 — Full Visual Fidelity Correction
-Status: TECHNICAL READY FOR OWNER VISUAL REVIEW. Fixed what Phase 4.5 got wrong by using **real, exact CSS** instead of guesses — extracted directly from the live production site's compiled stylesheet (Mentra Live's `product-detail-*`, MentraOS's `green-grid-promo`/`os-download-promo*`) or from embedded per-page `<style>` blocks in the WGET capture (Even Realities' entire ~40-class component system, ~509 lines, previously 100% unported). Removed the invented Mentra Live charging section entirely and built a real, separate Infinity Cable product page (`/products/mentra-live-charging-cable/`, new WooCommerce product SKU `MENTRA-INFINITY-CABLE`). Fixed Socials' platform-card hover (JS-driven on the real site, not CSS — reproduced with `initSocialPlatformHover()`, reading each card's own color from the DOM). Audited all 20 top-level routes for the same failure pattern (embedded-`<style>`-block-not-ported); found and confirmed one more instance already fixed in an earlier phase (Careers), one minor unfixed low-priority item (`/phu-de/`). A real bug (wrong `page_link`/`_get_page_link` filter argument type) was found and fixed before commit. **Same-day addendum**, after the PM reported `/mentra-live/` still looked wrong: found the true remaining defect — 44 bracket-notation Tailwind classes (`text-[Npx]`, `grid-cols-[...]`, etc.) used across all three hand-authored PHP templates had **zero matching CSS anywhere**, because `utilities.css` was only ever compiled against `templates/source/*.html`, never against these separately-authored files. Generated real CSS for all 44 tokens and re-verified (0 missing). Also bumped `MENTRA_VN_THEME_VERSION` (unchanged since Phase 2 despite 4 phases of CSS/JS edits since), since a stale browser cache could independently explain "still not fixed" regardless of server-side correctness. Still no browser-automation tooling available for pixel-level visual confirmation — **owner/PM should hard-refresh and visually confirm in a real browser before Forms (Phase 5) begins.** Full detail: `docs/phase-4.6-report.md` (including its same-day addendum), `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md`.
+Status: PASS (superseded procedurally by owner sign-off below, but the technical work stands). Fixed what Phase 4.5 got wrong by using **real, exact CSS** instead of guesses — extracted directly from the live production site's compiled stylesheet (Mentra Live's `product-detail-*`, MentraOS's `green-grid-promo`/`os-download-promo*`) or from embedded per-page `<style>` blocks in the WGET capture (Even Realities' entire ~40-class component system, ~509 lines, previously 100% unported). Removed the invented Mentra Live charging section entirely and built a real, separate Infinity Cable product page (`/products/mentra-live-charging-cable/`, new WooCommerce product SKU `MENTRA-INFINITY-CABLE`). Fixed Socials' platform-card hover. Audited all 20 top-level routes for the same failure pattern. A same-day addendum found and fixed 44 uncompiled bracket-notation Tailwind classes and a stale cache-version string. Full detail: `docs/phase-4.6-report.md`, `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`.
+
+### Visual Fidelity Milestone — Owner-Approved Finishing Pass (Antigravity)
+Status: **OWNER APPROVED / COMPLETE.** After Phase 4.6, the owner completed the remaining frontend visual work directly together with Antigravity (a separate coding tool) and explicitly approved the resulting frontend state — this supersedes the earlier "VISUAL VERIFICATION PENDING" status; owner confirmation is authoritative regardless of whether every pixel was independently re-verified by Claude. 20 additional commits on `fix/full-visual-fidelity` (`6f25c70`..`9aa4d5b`), reviewed and kept as-is per instruction not to reopen approved visual work absent a technical breakage. Notable changes: Mentra Live gallery thumbnail switching + layout alignment fixes, Even Realities icon/typography fixes, Socials hover polish, a new `/tai-ung-dung/` (app download) page replacing the old `/get-mentra` → sales-contact redirect with a real download page, MentraOS logo sizing, comparison-page (`/so-sanh/`) FAQ interactivity + price removal from CTAs, captions-page (`/phu-de/`) FAQ content/styling, and several `MENTRA_VN_THEME_VERSION` cache-bumps (final: `3.14.0`). Reviewed for secrets/debug code/hardcoded local paths (none found) and re-validated `php -l`/`node --check` (both clean) before this handoff; a mechanical cleanup commit (`chore: strip stray UTF-8 BOM from static-source HTML files`) was added on top. **Live-route HTTP verification could not be performed during this handoff pass** — the local Local-by-Flywheel site was down (nginx up, PHP-FPM/MySQL not running) at review time; this is an environment/infrastructure state issue, not a code regression (confirmed: even the homepage 502'd, unrelated to any specific change). Recommend a quick route smoke-test once the local site is running again. **Frontend page-building milestone is now closed.**
 
 ## Current architecture
 
@@ -49,6 +52,8 @@ Status: TECHNICAL READY FOR OWNER VISUAL REVIEW. Fixed what Phase 4.5 got wrong 
 13. **Business-contact forms will eventually all use `contact@domain.vn`** (not yet unified).
 14. **SMTP transport will be WP Mail SMTP** when configured — do not build custom SMTP transport.
 15. **Legal-policy bodies** (Privacy/Terms/Shipping/Refund) still require human Vietnam-specific legal review before content changes; routing/slug fixes are fine.
+16. **`/tai-ung-dung/` app-download page** (added during the owner/Antigravity finishing pass): a new static-source-mirror page (`templates/source/get.html`, source key `get`), replacing the old `/get-mentra` behavior — that legacy path now 301-redirects to `/tai-ung-dung/` instead of to sales contact. No price/cart content.
+17. **Frontend visual page-building milestone is CLOSED**, owner-approved. Any further frontend work should be scoped as a new, deliberate task, not assumed to be still-open Phase 4.x cleanup.
 
 ## Current important IDs/data
 
@@ -82,8 +87,8 @@ Status: TECHNICAL READY FOR OWNER VISUAL REVIEW. Fixed what Phase 4.5 got wrong 
 - Google reCAPTCHA v2 + server-side verification (Phase 5 candidate)
 - WP Mail SMTP configuration
 - Legal content review (Privacy/Terms/Shipping/Refund body text) — includes the "Đổi trả & bảo hành" block on `/mentra-live/`, flagged inline
-- **Manual browser visual verification of `/mentra-live/`, `/mentra-os/`, `/even-realities/`, `/mang-xa-hoi/`, `/products/mentra-live-charging-cable/` at desktop (1440/1920/1024px) and mobile (390/375/768px)** — neither Phase 4.5 nor 4.6 could perform this (no browser-automation tooling available in this environment). Phase 4.6 replaced every guessed CSS value with a verified real one, but only a real browser can confirm actual pixel-level correctness. **Do this before Phase 5 (Forms) begins.**
-- Manual visual QA in an actual browser generally (all verification so far is HTTP/DB-level)
+- ~~Manual browser visual verification~~ — **DONE.** The owner completed remaining visual work with Antigravity and explicitly approved the frontend. Closed, do not reopen.
+- A live-route HTTP smoke-test is still recommended once the local server is confirmed running (it was down — PHP-FPM/MySQL not started — during the final handoff review; see the Visual Fidelity Milestone entry above).
 - Production deployment (still local-only)
 
 ## Non-blocking technical debt
@@ -102,7 +107,7 @@ Status: TECHNICAL READY FOR OWNER VISUAL REVIEW. Fixed what Phase 4.5 got wrong 
 
 ## Next planned phase
 
-**Phase 5 — Forms Architecture** (unify contact routing to `contact@domain.vn`, build the Career form backend, add reCAPTCHA v2 + server-side verification, configure WP Mail SMTP). Before starting: a human should visually confirm Phase 4.6's browser-verification-pending items (see Known deferred work above) — the owner explicitly wants the frontend visually correct before Forms work begins.
+**Phase 5 — Forms Architecture** (unify contact routing to `contact@domain.vn`, build the Career form backend, add reCAPTCHA v2 + server-side verification, configure WP Mail SMTP). The frontend visual-fidelity precondition is now satisfied — owner approved. Forms has not started.
 
 **DO NOT START WITHOUT USER/PROJECT-MANAGER INSTRUCTION.**
 
@@ -110,8 +115,8 @@ Status: TECHNICAL READY FOR OWNER VISUAL REVIEW. Fixed what Phase 4.5 got wrong 
 
 1. `CLAUDE.md`
 2. `docs/project-status.md` (this file)
-3. `docs/phase-4.6-report.md` (latest phase report)
-4. `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md` (if further visual/template work is needed on any page)
+3. `docs/phase-4.6-report.md` (latest phase report — the owner-approved Antigravity finishing pass has no separate phase report; see this file's Completed Phases section above for its summary)
+4. `docs/visual-fidelity-audit.md`, `docs/full-visual-route-audit.md`, `docs/owner-visual-bugs.md` (historical reference only — frontend milestone is closed, do not treat their "pending" language as current)
 5. The relevant specialized document for whatever phase is being started next (e.g. `docs/route-map.csv` for routing, `docs/news-migration-manifest.md` for further news work)
 
 Do not reread every historical document unless the task genuinely requires it.

@@ -2,7 +2,9 @@
 
 Started: Phase 4.6 (2026-08-21), after the owner manually inspected the local site in a real browser and found Phase 4.5 had not actually resolved the visual fidelity problems.
 
-Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING`. Claude does not mark anything `OWNER VERIFIED` — only the owner/PM can close that loop.
+Closed: 2026-08-22. The owner completed the remaining frontend visual work directly with Antigravity and explicitly approved the resulting frontend state (relayed via the PM). Per-item statuses below updated to `OWNER VERIFIED` on that basis — this milestone is closed.
+
+Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING` / `OWNER VERIFIED`.
 
 ## VIS-001 — Socials platform-card hover missing
 
@@ -12,7 +14,7 @@ Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING`. Claude does not mark 
 
 **Fix**: `initSocialPlatformHover()` added to `mentra.js` — reads each card's own accent color from the DOM at runtime and applies it to border/accent-bar/icon-background/title/arrow on `mouseenter`/`focus`, reverting on `mouseleave`/`blur`. Transitions use the Tailwind `transition-all`/`transition-colors` utility classes already present on the source markup — no new CSS needed.
 
-**Status**: FIXED. `OWNER-VERIFICATION-PENDING` (no browser available in this environment to visually confirm).
+**Status**: OWNER VERIFIED (owner completed remaining polish with Antigravity and approved).
 
 ## VIS-002 — Mentra Live desktop composition/layout incorrect
 
@@ -22,7 +24,7 @@ Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING`. Claude does not mark 
 
 **Fix**: replaced the guessed CSS with the exact `product-detail-*` ruleset extracted directly from the live site's own compiled stylesheet (`https://mentraglass.com/live`'s `app-*.css` bundle) — real breakpoints at 48em/64em/96em, real `max-width:32.5rem` summary column, real `height:max(280px,min(54vw,440px))` media card, real flex-row scrollable thumbnails. Un-scoped from the page (was `.mentra-vn-mentra-live .product-detail-*`) since it's a genuinely shared product-page component, confirmed reused verbatim on the new Infinity Cable page.
 
-**Status**: FIXED. `OWNER-VERIFICATION-PENDING`.
+**Status**: OWNER VERIFIED (owner completed remaining polish with Antigravity and approved).
 
 ## VIS-003 — Infinity Cable incorrectly modeled as `/mentra-live/#charging`
 
@@ -32,7 +34,7 @@ Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING`. Claude does not mark 
 
 **Fix**: removed the invented charging section from `page-mentra-live.php` entirely (including its FAQ cross-link). Built a real, separate product page — WP Page `mentra-live-charging-cable`, template `page-mentra-live-charging-cable.php`, canonical URL `/products/mentra-live-charging-cable/` (rewrite + permalink filter in `functions.php`), backed by a new WooCommerce simple product (SKU `MENTRA-INFINITY-CABLE`, documented internal SKU per the source having no literal SKU string). Mega-menu link updated to point there. See `docs/product-classification.md` addendum.
 
-**Status**: FIXED. `OWNER-VERIFICATION-PENDING`.
+**Status**: OWNER VERIFIED (owner completed remaining polish with Antigravity and approved).
 
 ## VIS-004 — Even Realities layout/CSS incorrect
 
@@ -42,7 +44,7 @@ Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING`. Claude does not mark 
 
 **Fix**: extracted the complete embedded `<style>` block (509 lines) verbatim from `WGET_REFERENCE/even-realities.html`, ported into `mentra.css` scoped under the page's own `.mentra-vn-even-realities` body class, values unchanged.
 
-**Status**: FIXED. `OWNER-VERIFICATION-PENDING`.
+**Status**: OWNER VERIFIED (owner completed remaining polish with Antigravity and approved).
 
 ## VIS-005 — Full frontend visual sweep required before Forms
 
@@ -50,4 +52,4 @@ Statuses: `OPEN` / `FIXED` / `OWNER-VERIFICATION-PENDING`. Claude does not mark 
 
 **Action taken**: audited all 20 top-level public routes (see `docs/full-visual-route-audit.md`). Found and fixed one additional occurrence of the VIS-004 root-cause pattern was checked for across every WGET page with an embedded `<style>` block (`OS.html`, `blog.html`, `blogs.html`, `captions.html`, `careers.html`, `discord.html`, `even-realities.html`, `index.html`, `privacy.html`, `socials.html`) — confirmed `careers.html`'s equivalent block was already fully ported in an earlier phase (false-positive on a first pass, verified by direct inspection before "fixing" anything that wasn't broken); `captions.html` has one small unported typography rule (`.captions-faq-answer`, non-layout, low priority — flagged, not fixed, see audit doc); all other pages' embedded blocks are decorative keyframes only, already inert/harmless.
 
-**Status**: FIXED for the 4 confirmed-broken routes (Mentra Live, MentraOS, Even Realities, Socials) plus the new Infinity Cable page. `OWNER-VERIFICATION-PENDING` for all of them — this bug list cannot be closed without a human (or future browser-automation tooling) visually confirming in an actual browser, per Phase 4.5's and this phase's own gate criteria.
+**Status**: OWNER VERIFIED. The owner completed remaining polish across the frontend with Antigravity and explicitly approved the resulting state. Frontend visual milestone closed.

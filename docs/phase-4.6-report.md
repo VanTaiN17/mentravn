@@ -84,7 +84,9 @@ While DB-verifying the new Infinity Cable page via a one-off `wp-load.php` boots
 
 ## Manual browser verification
 
-**Still not available in this environment** (no Playwright or other browser automation, confirmed again this phase). Per the Phase 4.5/4.6 gate criteria, this phase **cannot claim a full visual PASS**. Reported as **TECHNICAL READY FOR OWNER VISUAL REVIEW**. Unlike Phase 4.5, every CSS value applied this phase is a verified, exact reproduction of a real source (the live production stylesheet or an embedded page-specific `<style>` block) rather than an estimate — the specific failure mode the owner caught last time (plausible-looking guesses) should not recur, but only a real browser can confirm actual pixel-level correctness, animation feel, and responsive behavior at the specified breakpoints (1920/1440/1024/768/390/375).
+**Still not available in this environment** (no Playwright or other browser automation, confirmed again this phase). Per the Phase 4.5/4.6 gate criteria, this phase **cannot claim a full visual PASS** *on its own*. Reported at the time as **TECHNICAL READY FOR OWNER VISUAL REVIEW**.
+
+**Update (2026-08-22, current status)**: the owner subsequently completed remaining visual polish directly with Antigravity and explicitly approved the resulting frontend state. This satisfies the outstanding manual-verification gate by owner sign-off rather than Claude self-certification — see `docs/owner-visual-bugs.md` (closed) and `docs/project-status.md` for the current, authoritative status. The frontend visual-fidelity milestone is now **OWNER APPROVED / COMPLETE**. This historical section is left otherwise unchanged.
 
 ## Remaining known gaps (documented, not blocking)
 
