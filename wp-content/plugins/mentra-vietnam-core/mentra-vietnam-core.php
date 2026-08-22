@@ -29,23 +29,13 @@ final class Mentra_Vietnam_Core_99 {
         'career' => '[MENTRA - TUYỂN DỤNG]',
     ];
 
-    // Whitelist mapping the #contact-subject dropdown's fixed option values
-    // (already present in templates/source/contact*.html, partnerships.html,
-    // media-inquiries.html - no new options invented) to one of the five
-    // non-career form types. Matched case-insensitively; anything not listed
-    // here is rejected rather than guessed. Still the fallback path when
-    // route_locked_type() can't resolve a Referer (see contact_ajax()).
-    const CONTACT_SUBJECT_MAP = [
-        '' => 'general',
-        'general question' => 'general',
-        'sales' => 'sales',
-        'order & shipping' => 'sales',
-        'technical support' => 'support',
-        'partnerships' => 'partnership',
-        'business & partnerships' => 'partnership',
-        'media inquiries' => 'media',
-        'phản hồi' => 'general',
-        'other' => 'general',
+    // Final forms hotfix: server-side product allowlist for Purchase mode.
+    // Never trust raw $_GET/$_POST['product'] text - the display name shown
+    // in the UI and in mail always comes from this map, keyed by a stable,
+    // publicly-known slug (never an invented value).
+    const PRODUCT_ALLOWLIST = [
+        'mentra-live' => 'Mentra Live',
+        'mentra-live-charging-cable' => 'Infinity Cable cho Mentra Live',
     ];
 
     // Forms UX hotfix: Vietnamese labels for the six form types, used in the
@@ -634,43 +624,82 @@ final class Mentra_Vietnam_Core_99 {
     }
 
     /**
-     * Forms UX hotfix: authoritative route -> form-type resolution, using
-     * wp_get_referer() (WP core's own safe helper for the Referer header) -
-     * NOT a client-submitted field. A visitor's browser sends the real
-     * referring page URL for a same-origin fetch() by default; a simple
-     * "edit the HTML/hidden input in devtools" attack cannot change what
-     * the browser itself sends as Referer, which is exactly the threat
-     * model the locked-context UI needs to be safe against (see section 2
-     * of the hotfix brief - a disabled/locked frontend field is not a
-     * security boundary by itself). Referer is still not cryptographically
-     * unspoofable (a non-browser HTTP client can set anything), but that
-     * class of attacker is already fully bounded by CONTACT_SUBJECT_MAP's
-     * existing whitelist (the fallback below) - this only adds precision
-     * for the common, realistic case, it does not weaken the existing
-     * guarantee. Returns null when the referer is absent/unrecognized, in
-     * which case the caller falls back to the pre-existing whitelist logic.
+     * Final forms hotfix: normalizes a client-submitted form type against
+     * the FORM_TYPES whitelist. Never returns a value that isn't one of
+     * those six keys.
      */
-    private static function route_locked_type($referer) {
-        if (!$referer) { return null; }
-        $path = untrailingslashit((string) parse_url($referer, PHP_URL_PATH));
-        $query = [];
-        parse_str((string) parse_url($referer, PHP_URL_QUERY), $query);
+    private static function normalize_type($type) {
+        $type = sanitize_key((string) $type);
+        return isset(self::FORM_TYPES[$type]) ? $type : null;
+    }
 
-        if (preg_match('#/(lien-he|contact)$#', $path)) {
-            $topic = isset($query['topic']) ? sanitize_key($query['topic']) : '';
-            if ($topic === 'sales') { return 'sales'; }
-            if ($topic === 'support') { return 'support'; }
-            return 'general';
+    public static function is_valid_product($key) {
+        return is_string($key) && $key !== '' && isset(self::PRODUCT_ALLOWLIST[$key]);
+    }
+
+    public static function product_name($key) {
+        return self::PRODUCT_ALLOWLIST[$key] ?? '';
+    }
+
+    /**
+     * Final forms hotfix: replaces the old Referer-based route_locked_type().
+     * This is the scoped-nonce action string for a given (already-whitelisted)
+     * form type + Purchase context, used BOTH when a page renders (to create
+     * the nonce for the exact context being rendered - see
+     * mentra_vn_assets() in functions.php) and when the AJAX handler runs
+     * (recomputed here from the client-submitted context after it has been
+     * normalized/whitelisted, then verified against the client-submitted
+     * nonce via verify_scoped_nonce()). Because the action string changes
+     * whenever type/intent/product changes, a nonce issued for one context
+     * can never verify against a different one - a client that edits
+     * form_type/intent/product in devtools while replaying an old nonce
+     * always fails check_ajax_referer(), regardless of what the (untrusted)
+     * Referer header says. Referer is no longer read anywhere in this
+     * class.
+     */
+    public static function contact_nonce_action($type, $intent = '', $product = '') {
+        $type = self::normalize_type($type);
+        if ($type === null) { return 'mentra_vn_contact_invalid'; }
+        if ($type === 'sales' && $intent === 'purchase' && self::is_valid_product($product)) {
+            return 'mentra_vn_contact_sales_purchase_' . $product;
         }
-        if (preg_match('#/(doi-tac|partnerships)$#', $path)) { return 'partnership'; }
-        if (preg_match('#/(truyen-thong|media-inquiries)$#', $path)) { return 'media'; }
-        return null;
+        return 'mentra_vn_contact_' . $type;
+    }
+
+    public static function create_contact_nonce($type, $intent = '', $product = '') {
+        return wp_create_nonce(self::contact_nonce_action($type, $intent, $product));
     }
 
     private static function verify_public_nonce() {
         if (!check_ajax_referer('mentra_vn_public', 'nonce', false)) {
             wp_send_json_error(['message' => 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.'], 403);
         }
+    }
+
+    /**
+     * Same failure shape as verify_public_nonce(), scoped to an arbitrary
+     * action string - see contact_nonce_action().
+     */
+    private static function verify_scoped_nonce($action) {
+        if (!check_ajax_referer($action, 'nonce', false)) {
+            wp_send_json_error(['message' => 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.'], 403);
+        }
+    }
+
+    /**
+     * Purchase mode only. Accepts practical international phone formats
+     * (digits, spaces, +, -, parentheses) rather than a fragile Vietnam-only
+     * pattern that could reject a legitimate international customer.
+     * Returns null (caller must reject) for anything empty, over-length,
+     * containing disallowed characters, or with fewer than 6 digits.
+     */
+    private static function sanitize_phone($value) {
+        $value = trim((string) $value);
+        if ($value === '' || mb_strlen($value) > 30) { return null; }
+        if (!preg_match('/^[0-9+\-\s()]+$/', $value)) { return null; }
+        $digits = preg_replace('/\D/', '', $value);
+        if (strlen($digits) < 6) { return null; }
+        return $value;
     }
 
     /**
@@ -849,26 +878,19 @@ final class Mentra_Vietnam_Core_99 {
     }
 
     /**
-     * The theme's own local Mentra logo, via a real WordPress URL API
-     * (get_template_directory_uri()) - never a hardcoded local domain, never
-     * a filesystem path, and never re-downloaded/duplicated. Works
-     * unchanged after production deployment since the URL is generated from
-     * the current site's own home/theme URL at send time.
-     */
-    private static function email_logo_url() {
-        return esc_url(get_template_directory_uri() . '/assets/mentra_logo.svg');
-    }
-
-    /**
      * Minimal, table-based HTML email shell (email-client-safe: no
      * flexbox/grid, inline styles only) shared by both the admin
      * notification and the customer acknowledgement. $rows is an
      * associative label => value array, values are escaped and
-     * newline-preserved. Degrades gracefully if the logo image is blocked -
-     * the heading text alone still identifies the sender.
+     * newline-preserved. The logo is referenced as "cid:mentra-logo" - a
+     * Content-ID that only resolves because mail_with_logo() embeds the
+     * matching image as part of the same MIME message (see that method's
+     * docblock for why a remote <img src> URL doesn't work here). Degrades
+     * gracefully if the image itself is ever blocked by the recipient's
+     * mail client - the heading text (which always contains "MENTRA")
+     * still identifies the sender even with images off.
      */
     private static function render_html_email($heading, $intro_html, array $rows, $reference_id) {
-        $logo = self::email_logo_url();
         $rows_html = '';
         foreach ($rows as $label => $value) {
             $rows_html .= '<tr>'
@@ -881,7 +903,7 @@ final class Mentra_Vietnam_Core_99 {
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb">'
             . '<tr><td style="padding:28px 32px 0 32px">'
-            . '<img src="' . $logo . '" alt="Mentra" width="120" style="display:block;height:auto;max-width:120px;margin-bottom:14px;border:0">'
+            . '<img src="cid:mentra-logo" alt="Mentra" width="120" style="display:block;height:auto;max-width:120px;margin-bottom:14px;border:0">'
             . '<h1 style="margin:0 0 10px 0;font-size:20px;line-height:1.3;color:#111827;font-family:Arial,Helvetica,sans-serif">' . esc_html($heading) . '</h1>'
             . '<div style="color:#374151;font-size:14px;line-height:1.6">' . $intro_html . '</div>'
             . '</td></tr>'
@@ -894,35 +916,90 @@ final class Mentra_Vietnam_Core_99 {
     }
 
     /**
+     * Final forms hotfix: sends a Mentra HTML email with the local logo
+     * embedded as a CID attachment rather than a remote <img src> URL -
+     * render_html_email() always references "cid:mentra-logo", and this is
+     * the only place that can make that CID actually resolve.
+     * get_template_directory_uri() (the previous approach) resolves to an
+     * unreachable http://mentra-vn.local/... on this local environment, and
+     * even in production would depend on the recipient's mail client
+     * fetching a remote URL at all (many clients block that by default) -
+     * CID embedding has neither problem. The phpmailer_init hook is added
+     * immediately before wp_mail() and removed immediately after, so it can
+     * never attach the logo to an unrelated WordPress email (Newsletter
+     * does not call wp_mail() at all, but any other plugin/core mail sent
+     * outside this exact call is never touched). wp_mail() remains the only
+     * transport - this hook only embeds an image, never configures
+     * SMTP/mailer settings (WP Mail SMTP still owns that, per Phase 7). A
+     * failure while embedding the image is swallowed so the textual email
+     * still sends (section 24 of the hotfix brief).
+     */
+    private static function mail_with_logo($to, $subject, $html, array $headers) {
+        $logo_path = get_template_directory() . '/assets/mentra_logo_email.png';
+        $embed = static function ($phpmailer) use ($logo_path) {
+            if (!is_file($logo_path)) { return; }
+            try {
+                $phpmailer->addEmbeddedImage($logo_path, 'mentra-logo', 'mentra_logo_email.png');
+            } catch (\Throwable $e) {
+                // Logo embedding must never block the textual email from sending.
+            }
+        };
+        add_action('phpmailer_init', $embed);
+        $sent = wp_mail($to, $subject, $html, $headers);
+        remove_action('phpmailer_init', $embed);
+        return $sent;
+    }
+
+    /**
      * Best-effort customer acknowledgement (section 16 of the hotfix
      * brief). Never blocks or affects the AJAX response - the frontend
      * already reported success once the ADMIN mail (below) succeeded; this
      * runs after that and its own wp_mail() result is intentionally
      * ignored. Uses the SAME $reference_id as the admin notification.
+     * $context carries Purchase-mode extras (intent/product_name/phone/
+     * address) - empty for the five non-Purchase form types and Career.
      */
-    private static function send_customer_acknowledgement($type, $name, $email, $reference_id) {
+    private static function send_customer_acknowledgement($type, $name, $email, $reference_id, array $context = []) {
+        if (($context['intent'] ?? '') === 'purchase') {
+            $product_name = $context['product_name'] ?? '';
+            $heading = 'Yêu cầu mua hàng đã được ghi nhận';
+            $intro = '<p style="margin:0 0 6px 0">Xin chào ' . esc_html($name) . ',</p>'
+                . '<p style="margin:0 0 6px 0">Cảm ơn bạn đã quan tâm đến ' . esc_html($product_name) . '.</p>'
+                . '<p style="margin:0">Mentra đã nhận được yêu cầu mua hàng của bạn. Đội ngũ của chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.</p>';
+            $rows = [
+                'Sản phẩm' => $product_name,
+                'Số điện thoại' => $context['phone'] ?? '',
+                'Địa chỉ' => $context['address'] ?? '',
+            ];
+            $html = self::render_html_email($heading, $intro, $rows, $reference_id);
+            self::mail_with_logo($email, '[MENTRA - KINH DOANH] Chúng tôi đã nhận yêu cầu mua hàng của bạn', $html, ['Content-Type: text/html; charset=UTF-8']);
+            return;
+        }
         $heading = 'Cảm ơn bạn đã liên hệ với Mentra';
         $intro = '<p style="margin:0 0 6px 0">Xin chào ' . esc_html($name) . ',</p>'
             . '<p style="margin:0">Chúng tôi đã nhận được yêu cầu của bạn và sẽ phản hồi trong thời gian sớm nhất.</p>';
         $rows = ['Loại yêu cầu' => self::TYPE_LABELS_VI[$type] ?? self::FORM_TYPES[$type]];
         $html = self::render_html_email($heading, $intro, $rows, $reference_id);
-        wp_mail($email, '[MENTRA] Đã nhận được yêu cầu của bạn', $html, ['Content-Type: text/html; charset=UTF-8']);
+        self::mail_with_logo($email, '[MENTRA] Đã nhận được yêu cầu của bạn', $html, ['Content-Type: text/html; charset=UTF-8']);
     }
 
     /**
      * Shared tail of the form pipeline for every whitelisted form type:
      * compose a server-generated subject (never a client-supplied prefix),
      * send an HTML admin notification via wp_mail() (the only transport -
-     * no SMTP/PHPMailer config here), then best-effort a customer HTML
-     * acknowledgement sharing the same reference ID, and return a
-     * standardized JSON response. The frontend success state only ever
-     * happens once the ADMIN mail succeeds - the customer acknowledgement's
-     * own outcome never affects it (section 16). Rate limiting and
-     * reCAPTCHA verification (Phase 6) already ran in the caller via
+     * no SMTP/PHPMailer config here beyond the CID logo hook, see
+     * mail_with_logo()), then best-effort a customer HTML acknowledgement
+     * sharing the same reference ID, and return a standardized JSON
+     * response. The frontend success state only ever happens once the
+     * ADMIN mail succeeds - the customer acknowledgement's own outcome
+     * never affects it (section 16). Rate limiting and reCAPTCHA
+     * verification (Phase 6) already ran in the caller via
      * enforce_security() before this is reached - see contact_ajax(),
-     * career_ajax().
+     * career_ajax(). $context is Purchase-mode metadata, forwarded
+     * unchanged to send_customer_acknowledgement(); empty for every other
+     * form type.
      */
-    private static function send_form_mail($type, $subject_line, array $fields, $reply_name, $reply_email) {
+    private static function send_form_mail($type, $subject_line, array $fields, $reply_name, $reply_email, array $context = []) {
         if (!isset(self::FORM_TYPES[$type])) {
             wp_send_json_error(['message' => 'Loại biểu mẫu không hợp lệ.'], 400);
         }
@@ -936,37 +1013,64 @@ final class Mentra_Vietnam_Core_99 {
         $intro = '<p style="margin:0">Có một yêu cầu mới từ website Mentra Việt Nam.</p>';
         $html = self::render_html_email(self::FORM_TYPES[$type] . ' - Yêu cầu mới', $intro, $fields, $reference_id);
 
-        $sent = wp_mail($to, $subject, $html, $headers);
+        $sent = self::mail_with_logo($to, $subject, $html, $headers);
         if (!$sent) {
             wp_send_json_error(['message' => 'Không thể gửi email. Vui lòng thử lại.'], 500);
         }
 
-        self::send_customer_acknowledgement($type, $reply_name, $reply_email, $reference_id);
+        self::send_customer_acknowledgement($type, $reply_name, $reply_email, $reference_id, $context);
 
         wp_send_json_success(['message' => 'Đã gửi yêu cầu.']);
     }
 
     /**
      * Centralized handler for the five business-contact form types
-     * (General/Sales/Support/Partnership/Media) sharing the single
-     * #contact-subject markup (templates/source/contact.html,
-     * contact@topic=sales.html, contact@topic=support.html,
-     * partnerships.html, media-inquiries.html). The form type is normally
-     * resolved authoritatively from the request's Referer via
-     * route_locked_type() (see that method's docblock) - the frontend's
-     * locked-context badge is a UX affordance, not the security boundary.
-     * When the Referer is absent/unrecognized, this falls back to the
-     * pre-existing CONTACT_SUBJECT_MAP whitelist over the (now usually
-     * empty, since the dropdown is locked/hidden on dedicated pages)
-     * submitted subject value - never trusted/free text either way.
+     * (General/Sales/Support/Partnership/Media), plus the Sales-only
+     * Purchase variant, sharing the single #contact-subject markup
+     * (templates/source/contact.html, contact@topic=sales.html,
+     * contact@topic=support.html, partnerships.html,
+     * media-inquiries.html). Final forms hotfix: the form type (and, for
+     * Sales, the Purchase intent/product) is authoritative ONLY once its
+     * nonce verifies - see contact_nonce_action()/verify_scoped_nonce().
+     * The client submits form_type/intent/product itself, but those values
+     * are worthless on their own: they are normalized/whitelisted here,
+     * then used to recompute the exact nonce action the page must have
+     * been rendered with, and the submitted nonce must match that. A
+     * client that edits form_type (or intent/product) in devtools while
+     * replaying the original page's nonce always fails verification. The
+     * Referer header is not read anywhere in this method.
      */
     public static function contact_ajax() {
-        self::verify_public_nonce();
+        $type = self::normalize_type(wp_unslash($_POST['form_type'] ?? ''));
+        if ($type === null || $type === 'career') {
+            wp_send_json_error(['message' => 'Loại yêu cầu không hợp lệ.'], 400);
+        }
+
+        // Purchase mode only ever applies to Sales, and only with a
+        // server-approved product key. Any other combination (missing
+        // product, unrecognized product, intent requested on a non-Sales
+        // type) silently degrades to a normal submission of $type - it is
+        // never trusted enough to unlock Purchase-only fields/wording, and
+        // the raw value is never echoed anywhere.
+        $intent = '';
+        $product = '';
+        if ($type === 'sales') {
+            $intent_raw = sanitize_key(wp_unslash($_POST['intent'] ?? ''));
+            // 'mentra_product', not 'product' - see mentra_vn_current_purchase_context()
+            // in functions.php for why the plain name collides with WooCommerce's
+            // own registered 'product' query var on the frontend GET side; kept
+            // consistent here on the POST side too.
+            $product_raw = sanitize_key(wp_unslash($_POST['mentra_product'] ?? ''));
+            if ($intent_raw === 'purchase' && self::is_valid_product($product_raw)) {
+                $intent = 'purchase';
+                $product = $product_raw;
+            }
+        }
+
+        self::verify_scoped_nonce(self::contact_nonce_action($type, $intent, $product));
 
         $name = sanitize_text_field(wp_unslash($_POST['name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
-        $company = sanitize_text_field(wp_unslash($_POST['company'] ?? ''));
-        $subject_raw = sanitize_text_field(wp_unslash($_POST['subject'] ?? ''));
         $message = sanitize_textarea_field(wp_unslash($_POST['message'] ?? ''));
 
         if ($name === '' || mb_strlen($name) > 150) {
@@ -975,26 +1079,55 @@ final class Mentra_Vietnam_Core_99 {
         if (!$email || !is_email($email) || strlen($email) > 254) {
             wp_send_json_error(['message' => 'Vui lòng nhập email hợp lệ.'], 400);
         }
-        if (mb_strlen($company) > 150) {
-            wp_send_json_error(['message' => 'Tên công ty quá dài.'], 400);
-        }
-        if (mb_strlen($subject_raw) > 100) {
-            wp_send_json_error(['message' => 'Chủ đề không hợp lệ.'], 400);
-        }
         if ($message === '' || mb_strlen($message) > 5000) {
             wp_send_json_error(['message' => 'Vui lòng nhập nội dung (tối đa 5000 ký tự).'], 400);
         }
 
-        $type = self::route_locked_type(wp_get_referer());
-        if ($type === null) {
-            $key = mb_strtolower(trim($subject_raw), 'UTF-8');
-            if (!array_key_exists($key, self::CONTACT_SUBJECT_MAP)) {
-                wp_send_json_error(['message' => 'Chủ đề không hợp lệ.'], 400);
+        $company = '';
+        $phone = '';
+        $address = '';
+        if ($intent === 'purchase') {
+            $phone = self::sanitize_phone(wp_unslash($_POST['phone'] ?? ''));
+            if ($phone === null) {
+                wp_send_json_error(['message' => 'Vui lòng nhập số điện thoại hợp lệ.'], 400);
             }
-            $type = self::CONTACT_SUBJECT_MAP[$key];
+            $address = sanitize_textarea_field(wp_unslash($_POST['address'] ?? ''));
+            if ($address === '' || mb_strlen($address) > 500) {
+                wp_send_json_error(['message' => 'Vui lòng nhập địa chỉ hợp lệ.'], 400);
+            }
+        } else {
+            $company = sanitize_text_field(wp_unslash($_POST['company'] ?? ''));
+            if (mb_strlen($company) > 150) {
+                wp_send_json_error(['message' => 'Tên công ty quá dài.'], 400);
+            }
         }
 
+        // Purchase submissions share Sales' rate-limit bucket ($type is
+        // always 'sales' here, never a per-product key) - a client cannot
+        // get a fresh quota just by varying the product/intent query
+        // values (section 26 of the hotfix brief).
         self::enforce_security($type, wp_unslash($_POST['g_recaptcha_response'] ?? ''));
+
+        if ($intent === 'purchase') {
+            $product_name = self::product_name($product);
+            $fields = [
+                'Loại' => 'Yêu cầu mua hàng',
+                'Sản phẩm' => $product_name,
+                'Họ tên' => $name,
+                'Email' => $email,
+                'Số điện thoại' => $phone,
+                'Địa chỉ' => $address,
+                'Nội dung' => $message,
+            ];
+            $subject_line = 'Yêu cầu mua ' . $product_name . ' - ' . $name;
+            self::send_form_mail($type, $subject_line, $fields, $name, $email, [
+                'intent' => 'purchase',
+                'product_name' => $product_name,
+                'phone' => $phone,
+                'address' => $address,
+            ]);
+            return;
+        }
 
         $fields = [
             'Loại' => self::FORM_TYPES[$type],
@@ -1011,10 +1144,18 @@ final class Mentra_Vietnam_Core_99 {
      * Career form (templates/source/careers.html, #career-name/-email/
      * -expertise/-position/-portfolio/-why) - fields match the existing
      * markup exactly, no fields invented. This page previously had no
-     * backend at all.
+     * backend at all. Final forms hotfix: also requires form_type=career
+     * bound to a scoped nonce (mentra_vn_contact_career), same mechanism as
+     * contact_ajax() - Career's type was never actually ambiguous (there is
+     * only ever one form on /tuyen-dung/), but this keeps every
+     * business-contact endpoint under the same nonce-scoping guarantee.
      */
     public static function career_ajax() {
-        self::verify_public_nonce();
+        $type = self::normalize_type(wp_unslash($_POST['form_type'] ?? ''));
+        if ($type !== 'career') {
+            wp_send_json_error(['message' => 'Loại yêu cầu không hợp lệ.'], 400);
+        }
+        self::verify_scoped_nonce(self::contact_nonce_action('career'));
 
         $name = sanitize_text_field(wp_unslash($_POST['name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
@@ -1069,4 +1210,20 @@ function mentra_vn_recaptcha_enabled() {
 }
 function mentra_vn_recaptcha_site_key() {
     return Mentra_Vietnam_Core_99::recaptcha_site_key();
+}
+
+/**
+ * Final forms hotfix: bridge functions so the theme layer can create the
+ * scoped nonce for the form it's about to render, and resolve a Purchase
+ * product key to its server-approved display name, without reaching into
+ * the plugin's class internals directly.
+ */
+function mentra_vn_is_valid_product($key) {
+    return Mentra_Vietnam_Core_99::is_valid_product($key);
+}
+function mentra_vn_product_name($key) {
+    return Mentra_Vietnam_Core_99::product_name($key);
+}
+function mentra_vn_create_contact_nonce($type, $intent = '', $product = '') {
+    return Mentra_Vietnam_Core_99::create_contact_nonce($type, $intent, $product);
 }
