@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) { exit; }
 // mentra.js since then without ever bumping this cache-busting version
 // string, so any browser that cached the old CSS/JS before those changes
 // would keep serving it indefinitely (the query string never changed).
-define('MENTRA_VN_THEME_VERSION', '3.18.0');
+define('MENTRA_VN_THEME_VERSION', '3.19.0');
 define('MENTRA_VN_THEME_DIR', get_template_directory());
 define('MENTRA_VN_THEME_URI', get_template_directory_uri());
 
@@ -42,6 +42,8 @@ function mentra_vn_assets() {
         $recaptcha = ['configured' => true, 'siteKey' => mentra_vn_recaptcha_site_key()];
     }
 
+    $contact_type = mentra_vn_current_contact_type();
+
     wp_localize_script('mentra-runtime', 'MENTRA_VN', [
         'home' => trailingslashit(home_url('/')),
         'theme' => MENTRA_VN_THEME_URI,
@@ -49,9 +51,64 @@ function mentra_vn_assets() {
         'nonce' => wp_create_nonce('mentra_vn_public'),
         'cart' => $cart,
         'recaptcha' => $recaptcha,
+        'logo' => MENTRA_VN_THEME_URI . '/assets/mentra_logo.svg',
+        'contactType' => $contact_type,
+        'contactTypeLabel' => $contact_type ? mentra_vn_contact_type_label($contact_type) : '',
+        'contactTypeHeading' => $contact_type ? mentra_vn_contact_type_heading($contact_type) : '',
     ]);
 }
 add_action('wp_enqueue_scripts', 'mentra_vn_assets');
+
+/**
+ * Forms UX hotfix: which of the five contact-style form types (general/
+ * sales/support/partnership/media) the CURRENT request represents, purely
+ * from route/query - mirrors the routing mentra_vn_get_source_key() already
+ * uses to pick the static file, kept separate here since it answers a
+ * different question (form type, not source file). Returns null on every
+ * other page - Career always uses a fixed heading (hardcoded in mentra.js,
+ * no ambiguity), and Newsletter has no locked-type UI at all.
+ *
+ * This is a FRONTEND/UX signal only (which badge/heading to show) - it is
+ * NOT the security boundary. The server independently re-derives the
+ * authoritative type from the request's Referer in
+ * Mentra_Vietnam_Core_99::route_locked_type(), which a simple client-side
+ * HTML edit cannot spoof (see docs/forms-hotfix-report.md).
+ */
+function mentra_vn_current_contact_type() {
+    if (!is_page()) { return null; }
+    $slug = get_post_field('post_name', get_queried_object_id());
+    if ($slug === 'lien-he' || $slug === 'contact') {
+        $topic = isset($_GET['topic']) ? sanitize_key(wp_unslash($_GET['topic'])) : '';
+        if ($topic === 'sales') { return 'sales'; }
+        if ($topic === 'support') { return 'support'; }
+        return 'general';
+    }
+    if ($slug === 'doi-tac' || $slug === 'partnerships') { return 'partnership'; }
+    if ($slug === 'truyen-thong' || $slug === 'media-inquiries') { return 'media'; }
+    return null;
+}
+
+function mentra_vn_contact_type_label($type) {
+    $labels = [
+        'general' => 'Chung',
+        'sales' => 'Kinh doanh',
+        'support' => 'Hỗ trợ',
+        'partnership' => 'Đối tác',
+        'media' => 'Truyền thông',
+    ];
+    return $labels[$type] ?? '';
+}
+
+function mentra_vn_contact_type_heading($type) {
+    $headings = [
+        'general' => 'Liên hệ Mentra',
+        'sales' => 'Liên hệ kinh doanh',
+        'support' => 'Hỗ trợ Mentra',
+        'partnership' => 'Hợp tác cùng Mentra',
+        'media' => 'Liên hệ truyền thông',
+    ];
+    return $headings[$type] ?? 'Liên hệ Mentra';
+}
 
 /**
  * Phase 6: true only when the current front-end request actually renders a

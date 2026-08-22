@@ -33,7 +33,8 @@ final class Mentra_Vietnam_Core_99 {
     // (already present in templates/source/contact*.html, partnerships.html,
     // media-inquiries.html - no new options invented) to one of the five
     // non-career form types. Matched case-insensitively; anything not listed
-    // here is rejected rather than guessed.
+    // here is rejected rather than guessed. Still the fallback path when
+    // route_locked_type() can't resolve a Referer (see contact_ajax()).
     const CONTACT_SUBJECT_MAP = [
         '' => 'general',
         'general question' => 'general',
@@ -45,6 +46,20 @@ final class Mentra_Vietnam_Core_99 {
         'media inquiries' => 'media',
         'phản hồi' => 'general',
         'other' => 'general',
+    ];
+
+    // Forms UX hotfix: Vietnamese labels for the six form types, used in the
+    // locked-context UI and in both HTML email templates. Kept separate from
+    // the theme layer's own copy (functions.php) deliberately - these two
+    // are independent layers (frontend badge text vs. backend email body),
+    // each already reads its own copy for its own purpose.
+    const TYPE_LABELS_VI = [
+        'general' => 'Chung',
+        'sales' => 'Kinh doanh',
+        'support' => 'Hỗ trợ',
+        'partnership' => 'Đối tác',
+        'media' => 'Truyền thông',
+        'career' => 'Tuyển dụng',
     ];
 
     // Whitelist of the #career-expertise select's fixed option values
@@ -618,6 +633,40 @@ final class Mentra_Vietnam_Core_99 {
         );
     }
 
+    /**
+     * Forms UX hotfix: authoritative route -> form-type resolution, using
+     * wp_get_referer() (WP core's own safe helper for the Referer header) -
+     * NOT a client-submitted field. A visitor's browser sends the real
+     * referring page URL for a same-origin fetch() by default; a simple
+     * "edit the HTML/hidden input in devtools" attack cannot change what
+     * the browser itself sends as Referer, which is exactly the threat
+     * model the locked-context UI needs to be safe against (see section 2
+     * of the hotfix brief - a disabled/locked frontend field is not a
+     * security boundary by itself). Referer is still not cryptographically
+     * unspoofable (a non-browser HTTP client can set anything), but that
+     * class of attacker is already fully bounded by CONTACT_SUBJECT_MAP's
+     * existing whitelist (the fallback below) - this only adds precision
+     * for the common, realistic case, it does not weaken the existing
+     * guarantee. Returns null when the referer is absent/unrecognized, in
+     * which case the caller falls back to the pre-existing whitelist logic.
+     */
+    private static function route_locked_type($referer) {
+        if (!$referer) { return null; }
+        $path = untrailingslashit((string) parse_url($referer, PHP_URL_PATH));
+        $query = [];
+        parse_str((string) parse_url($referer, PHP_URL_QUERY), $query);
+
+        if (preg_match('#/(lien-he|contact)$#', $path)) {
+            $topic = isset($query['topic']) ? sanitize_key($query['topic']) : '';
+            if ($topic === 'sales') { return 'sales'; }
+            if ($topic === 'support') { return 'support'; }
+            return 'general';
+        }
+        if (preg_match('#/(doi-tac|partnerships)$#', $path)) { return 'partnership'; }
+        if (preg_match('#/(truyen-thong|media-inquiries)$#', $path)) { return 'media'; }
+        return null;
+    }
+
     private static function verify_public_nonce() {
         if (!check_ajax_referer('mentra_vn_public', 'nonce', false)) {
             wp_send_json_error(['message' => 'Phiên làm việc không hợp lệ. Vui lòng tải lại trang.'], 403);
@@ -790,30 +839,110 @@ final class Mentra_Vietnam_Core_99 {
     }
 
     /**
+     * Short, human-readable ID shared between the admin notification and
+     * the customer acknowledgement for the SAME submission, so the two can
+     * be matched up later (e.g. a reply referencing it). Not a secret, not
+     * used for lookup/storage anywhere - purely a display/correlation aid.
+     */
+    private static function generate_reference_id() {
+        return 'MT-' . strtoupper(base_convert((string) time(), 10, 36)) . '-' . strtoupper(wp_generate_password(4, false, false));
+    }
+
+    /**
+     * The theme's own local Mentra logo, via a real WordPress URL API
+     * (get_template_directory_uri()) - never a hardcoded local domain, never
+     * a filesystem path, and never re-downloaded/duplicated. Works
+     * unchanged after production deployment since the URL is generated from
+     * the current site's own home/theme URL at send time.
+     */
+    private static function email_logo_url() {
+        return esc_url(get_template_directory_uri() . '/assets/mentra_logo.svg');
+    }
+
+    /**
+     * Minimal, table-based HTML email shell (email-client-safe: no
+     * flexbox/grid, inline styles only) shared by both the admin
+     * notification and the customer acknowledgement. $rows is an
+     * associative label => value array, values are escaped and
+     * newline-preserved. Degrades gracefully if the logo image is blocked -
+     * the heading text alone still identifies the sender.
+     */
+    private static function render_html_email($heading, $intro_html, array $rows, $reference_id) {
+        $logo = self::email_logo_url();
+        $rows_html = '';
+        foreach ($rows as $label => $value) {
+            $rows_html .= '<tr>'
+                . '<td style="padding:6px 12px 6px 0;color:#6b7280;font-size:13px;width:170px;vertical-align:top;white-space:nowrap">' . esc_html($label) . '</td>'
+                . '<td style="padding:6px 0;color:#111827;font-size:14px;line-height:1.6">' . nl2br(esc_html($value)) . '</td>'
+                . '</tr>';
+        }
+        return '<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+            . '<body style="margin:0;padding:24px;background:#f4f4f2;font-family:Arial,Helvetica,sans-serif">'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb">'
+            . '<tr><td style="padding:28px 32px 0 32px">'
+            . '<img src="' . $logo . '" alt="Mentra" width="120" style="display:block;height:auto;max-width:120px;margin-bottom:14px;border:0">'
+            . '<h1 style="margin:0 0 10px 0;font-size:20px;line-height:1.3;color:#111827;font-family:Arial,Helvetica,sans-serif">' . esc_html($heading) . '</h1>'
+            . '<div style="color:#374151;font-size:14px;line-height:1.6">' . $intro_html . '</div>'
+            . '</td></tr>'
+            . '<tr><td style="padding:18px 32px 0 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">' . $rows_html . '</table></td></tr>'
+            . '<tr><td style="padding:22px 32px 28px 32px;color:#9ca3af;font-size:12px;border-top:1px solid #f3f4f6;margin-top:18px">'
+            . 'Mentra Việt Nam &middot; Mã tham chiếu: ' . esc_html($reference_id)
+            . '</td></tr>'
+            . '</table></td></tr></table>'
+            . '</body></html>';
+    }
+
+    /**
+     * Best-effort customer acknowledgement (section 16 of the hotfix
+     * brief). Never blocks or affects the AJAX response - the frontend
+     * already reported success once the ADMIN mail (below) succeeded; this
+     * runs after that and its own wp_mail() result is intentionally
+     * ignored. Uses the SAME $reference_id as the admin notification.
+     */
+    private static function send_customer_acknowledgement($type, $name, $email, $reference_id) {
+        $heading = 'Cảm ơn bạn đã liên hệ với Mentra';
+        $intro = '<p style="margin:0 0 6px 0">Xin chào ' . esc_html($name) . ',</p>'
+            . '<p style="margin:0">Chúng tôi đã nhận được yêu cầu của bạn và sẽ phản hồi trong thời gian sớm nhất.</p>';
+        $rows = ['Loại yêu cầu' => self::TYPE_LABELS_VI[$type] ?? self::FORM_TYPES[$type]];
+        $html = self::render_html_email($heading, $intro, $rows, $reference_id);
+        wp_mail($email, '[MENTRA] Đã nhận được yêu cầu của bạn', $html, ['Content-Type: text/html; charset=UTF-8']);
+    }
+
+    /**
      * Shared tail of the form pipeline for every whitelisted form type:
      * compose a server-generated subject (never a client-supplied prefix),
-     * send via wp_mail() (the only transport - no SMTP/PHPMailer config
-     * here), and return a standardized JSON response. Rate limiting and
+     * send an HTML admin notification via wp_mail() (the only transport -
+     * no SMTP/PHPMailer config here), then best-effort a customer HTML
+     * acknowledgement sharing the same reference ID, and return a
+     * standardized JSON response. The frontend success state only ever
+     * happens once the ADMIN mail succeeds - the customer acknowledgement's
+     * own outcome never affects it (section 16). Rate limiting and
      * reCAPTCHA verification (Phase 6) already ran in the caller via
      * enforce_security() before this is reached - see contact_ajax(),
-     * career_ajax(), newsletter().
+     * career_ajax().
      */
-    private static function send_form_mail($type, $subject_line, array $body_lines, $reply_name, $reply_email) {
+    private static function send_form_mail($type, $subject_line, array $fields, $reply_name, $reply_email) {
         if (!isset(self::FORM_TYPES[$type])) {
             wp_send_json_error(['message' => 'Loại biểu mẫu không hợp lệ.'], 400);
         }
+        $reference_id = self::generate_reference_id();
         $to = self::contact_email();
         $subject = self::safe_header_value(self::FORM_TYPES[$type] . ' - ' . $subject_line);
-        $body = implode("\n", $body_lines);
         $headers = [
-            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Type: text/html; charset=UTF-8',
             self::build_reply_to($reply_name, $reply_email),
         ];
+        $intro = '<p style="margin:0">Có một yêu cầu mới từ website Mentra Việt Nam.</p>';
+        $html = self::render_html_email(self::FORM_TYPES[$type] . ' - Yêu cầu mới', $intro, $fields, $reference_id);
 
-        $sent = wp_mail($to, $subject, $body, $headers);
+        $sent = wp_mail($to, $subject, $html, $headers);
         if (!$sent) {
             wp_send_json_error(['message' => 'Không thể gửi email. Vui lòng thử lại.'], 500);
         }
+
+        self::send_customer_acknowledgement($type, $reply_name, $reply_email, $reference_id);
+
         wp_send_json_success(['message' => 'Đã gửi yêu cầu.']);
     }
 
@@ -822,9 +951,14 @@ final class Mentra_Vietnam_Core_99 {
      * (General/Sales/Support/Partnership/Media) sharing the single
      * #contact-subject markup (templates/source/contact.html,
      * contact@topic=sales.html, contact@topic=support.html,
-     * partnerships.html, media-inquiries.html). The dropdown's raw value is
-     * resolved against CONTACT_SUBJECT_MAP - a fixed whitelist, not
-     * trusted/free text - to pick the form type and subject prefix.
+     * partnerships.html, media-inquiries.html). The form type is normally
+     * resolved authoritatively from the request's Referer via
+     * route_locked_type() (see that method's docblock) - the frontend's
+     * locked-context badge is a UX affordance, not the security boundary.
+     * When the Referer is absent/unrecognized, this falls back to the
+     * pre-existing CONTACT_SUBJECT_MAP whitelist over the (now usually
+     * empty, since the dropdown is locked/hidden on dedicated pages)
+     * submitted subject value - never trusted/free text either way.
      */
     public static function contact_ajax() {
         self::verify_public_nonce();
@@ -851,25 +985,26 @@ final class Mentra_Vietnam_Core_99 {
             wp_send_json_error(['message' => 'Vui lòng nhập nội dung (tối đa 5000 ký tự).'], 400);
         }
 
-        $key = mb_strtolower(trim($subject_raw), 'UTF-8');
-        if (!array_key_exists($key, self::CONTACT_SUBJECT_MAP)) {
-            wp_send_json_error(['message' => 'Chủ đề không hợp lệ.'], 400);
+        $type = self::route_locked_type(wp_get_referer());
+        if ($type === null) {
+            $key = mb_strtolower(trim($subject_raw), 'UTF-8');
+            if (!array_key_exists($key, self::CONTACT_SUBJECT_MAP)) {
+                wp_send_json_error(['message' => 'Chủ đề không hợp lệ.'], 400);
+            }
+            $type = self::CONTACT_SUBJECT_MAP[$key];
         }
-        $type = self::CONTACT_SUBJECT_MAP[$key];
 
         self::enforce_security($type, wp_unslash($_POST['g_recaptcha_response'] ?? ''));
 
-        $body = [
-            'Loại: ' . self::FORM_TYPES[$type],
-            'Họ tên: ' . $name,
-            'Email: ' . $email,
-            'Công ty: ' . ($company !== '' ? $company : '(không cung cấp)'),
-            'Chủ đề đã chọn: ' . ($subject_raw !== '' ? $subject_raw : '(không chọn)'),
-            '',
-            $message,
+        $fields = [
+            'Loại' => self::FORM_TYPES[$type],
+            'Họ tên' => $name,
+            'Email' => $email,
+            'Công ty' => ($company !== '' ? $company : '(không cung cấp)'),
+            'Nội dung' => $message,
         ];
 
-        self::send_form_mail($type, $name, $body, $name, $email);
+        self::send_form_mail($type, $name, $fields, $name, $email);
     }
 
     /**
@@ -909,17 +1044,16 @@ final class Mentra_Vietnam_Core_99 {
 
         self::enforce_security('career', wp_unslash($_POST['g_recaptcha_response'] ?? ''));
 
-        $body = [
-            'Họ tên: ' . $name,
-            'Email: ' . $email,
-            'Lĩnh vực chuyên môn: ' . $expertise,
-            'Vị trí quan tâm: ' . ($position !== '' ? $position : '(không cung cấp)'),
-            'Portfolio / LinkedIn: ' . ($portfolio !== '' ? $portfolio : '(không cung cấp)'),
-            '',
-            $why,
+        $fields = [
+            'Họ tên' => $name,
+            'Email' => $email,
+            'Lĩnh vực chuyên môn' => $expertise,
+            'Vị trí quan tâm' => ($position !== '' ? $position : '(không cung cấp)'),
+            'Portfolio / LinkedIn' => ($portfolio !== '' ? $portfolio : '(không cung cấp)'),
+            'Lý do ứng tuyển' => $why,
         ];
 
-        self::send_form_mail('career', $name, $body, $name, $email);
+        self::send_form_mail('career', $name, $fields, $name, $email);
     }
 }
 Mentra_Vietnam_Core_99::init();
