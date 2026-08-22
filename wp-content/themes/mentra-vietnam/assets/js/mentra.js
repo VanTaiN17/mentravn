@@ -29,7 +29,7 @@
       container.className='g-recaptcha mentra-recaptcha';
       container.setAttribute('data-sitekey',MENTRA_VN.recaptcha.siteKey);
       const submit=qs('.career-submit,button[type="submit"]',form);
-      if(submit) form.insertBefore(container,submit); else form.appendChild(container);
+      if(submit) submit.parentNode.insertBefore(container,submit); else form.appendChild(container);
     }
     mountRecaptchaWidget(container);
     return container;
@@ -831,5 +831,12 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{initHeader();initDesktopMegaMenu();initHeroVideo();initMentraLiveIntro();initB2BVideos();initFAQ();initCaptionsFAQ();initRxFAQ();initNewsletter();initContact();initCareer();initReveal();initHydratedTextFallbacks();initExternalSourceArtifacts();initNewsroomFilters();initPdpAccordion();initSocialPlatformHover();initProductGallery();});
+  // Each initializer runs in isolation: one throwing (e.g. a DOM-structure
+  // assumption that doesn't hold on some page) must never prevent the
+  // unrelated initializers listed after it from running - see the Forms
+  // hotfix report for the incident this directly guards against (Newsletter
+  // widget injection throwing silently disabled Contact/Career AJAX wiring
+  // sitewide). Errors are still logged, not swallowed.
+  const runInit=fn=>{try{fn();}catch(e){if(window.console&&console.error) console.error('mentra.js init failed:',fn.name||'(anonymous)',e);}};
+  document.addEventListener('DOMContentLoaded',()=>{[initHeader,initDesktopMegaMenu,initHeroVideo,initMentraLiveIntro,initB2BVideos,initFAQ,initCaptionsFAQ,initRxFAQ,initNewsletter,initContact,initCareer,initReveal,initHydratedTextFallbacks,initExternalSourceArtifacts,initNewsroomFilters,initPdpAccordion,initSocialPlatformHover,initProductGallery].forEach(runInit);});
 })();
