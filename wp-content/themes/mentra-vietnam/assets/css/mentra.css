@@ -219,13 +219,16 @@ img,svg,video{max-width:100%}
   transform: rotate(180deg) !important;
 }
 .mentra-mobile-menu-sub {
-  display: flex !important;
+  display: none !important;
   flex-direction: column !important;
   padding-left: 14px !important;
   border-left: 1px solid var(--border-subtle) !important;
   margin-top: 4px !important;
   margin-bottom: 4px !important;
   gap: 4px !important;
+}
+.mentra-mobile-menu-group.is-open .mentra-mobile-menu-sub {
+  display: flex !important;
 }
 .mentra-mobile-menu-sub a {
   display: flex !important;

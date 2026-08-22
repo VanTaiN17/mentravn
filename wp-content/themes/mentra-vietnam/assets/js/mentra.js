@@ -127,10 +127,9 @@
       qsa('.mentra-mobile-menu-trigger',menu).forEach(btn=>{
         btn.addEventListener('click',()=>{
           const group=btn.closest('.mentra-mobile-menu-group');
-          const sub=qs('.mentra-mobile-menu-sub',group);
           const open=btn.getAttribute('aria-expanded')==='true';
           btn.setAttribute('aria-expanded',String(!open));
-          if(sub) sub.style.display=open?'none':'flex';
+          if(group) group.classList.toggle('is-open',!open);
         });
       });
       menu.addEventListener('click',e=>{if(e.target.closest('a')) close();});
