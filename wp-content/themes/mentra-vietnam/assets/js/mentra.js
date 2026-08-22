@@ -28,8 +28,13 @@
       container=document.createElement('div');
       container.className='g-recaptcha mentra-recaptcha';
       container.setAttribute('data-sitekey',MENTRA_VN.recaptcha.siteKey);
-      const submit=qs('.career-submit,button[type="submit"]',form);
-      if(submit) submit.parentNode.insertBefore(container,submit); else form.appendChild(container);
+      if(form.getAttribute('data-mentra-newsletter')==='1'){
+        const inputRow=qs('.flex.flex-col',form);
+        if(inputRow) inputRow.parentNode.insertBefore(container,inputRow.nextSibling); else form.appendChild(container);
+      }else{
+        const submit=qs('.career-submit,button[type="submit"]',form);
+        if(submit) submit.parentNode.insertBefore(container,submit); else form.appendChild(container);
+      }
     }
     mountRecaptchaWidget(container);
     return container;

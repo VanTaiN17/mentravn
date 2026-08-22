@@ -757,41 +757,7 @@ body.mentra-menu-open{overflow:hidden}
 .home-work-editorial-chart{grid-column:2;grid-row:1/span 6;align-self:start}
 .home-work-editorial>p,.home-work-editorial>div:not(.home-work-editorial-chart){grid-column:1;margin:0}
 
-/* Backed-by rail: the previous absolute wrapper removed the marquee from document flow
-   and the dark-invert helpers turned local full-colour logos white. */
-.home-backed-marquee-fade{
-  position:relative!important;
-  inset:auto!important;
-  z-index:auto!important;
-  background:none!important;
-  overflow:hidden;
-}
-.home-backed-marquee-fade::before,.home-backed-marquee-fade::after{
-  content:"";
-  position:absolute;
-  top:0;
-  bottom:0;
-  width:72px;
-  z-index:3;
-  pointer-events:none;
-}
-.home-backed-marquee-fade::before{left:0;background:linear-gradient(90deg,var(--surface-2),rgba(233,235,230,0))}
-.home-backed-marquee-fade::after{right:0;background:linear-gradient(270deg,var(--surface-2),rgba(233,235,230,0))}
-.home-backed-marquee-section .home-backer-logo-item img{
-  filter:none!important;
-  opacity:1!important;
-  visibility:visible!important;
-  mix-blend-mode:normal!important;
-}
-.home-backed-marquee-section .home-backer-logo-item{
-  min-width:252px;
-  height:104px;
-  border-radius:20px;
-  padding:20px 26px;
-  gap:12px;
-}
-.home-backed-marquee-section .home-backer-logo-item img{max-height:38px;max-width:142px}
-.home-backed-marquee-section .home-backer-logo-item span{font-size:13px!important;color:var(--ink-tertiary)!important}
+/* Backed-by rail styling refactored globally at the end of the file. */
 
 /* Comparison table: keep real table layout. display:grid on <table> collapsed all cells
    into the right-hand side and separated glasses from their columns. */
@@ -985,28 +951,7 @@ body{font-optical-sizing:auto}
   .home-partner-card .home-partner-name{font-size:13px!important}
 }
 
-/* Backed-by strip closer to the original compact marquee. */
-.home-backed-marquee-section{overflow:hidden!important}
-.home-backed-marquee-section .home-backed-heading{margin:0 0 12px!important;font-size:18px!important;font-weight:500!important;line-height:1.2!important;text-transform:none!important;letter-spacing:0!important}
-.home-backed-marquee-section .home-backer-logo-strip{gap:14px!important;padding-right:14px!important}
-.home-backed-marquee-section .home-backer-logo-item{
-  flex:0 0 225px!important;
-  min-width:225px!important;
-  width:225px!important;
-  height:96px!important;
-  padding:16px 20px!important;
-  border-radius:18px!important;
-  background:#fafaf7!important;
-}
-.home-backed-marquee-section .home-backer-logo-item img{max-width:118px!important;max-height:34px!important;width:auto!important;height:auto!important;object-fit:contain!important}
-.home-backed-marquee-section .home-backer-logo-item span{font-size:12px!important;font-weight:500!important;white-space:nowrap}
-.home-backed-marquee-track{animation-duration:34s!important}
-@media(max-width:767px){
-  .home-backed-marquee-section .home-backed-heading{font-size:11px!important;margin-bottom:9px!important;text-align:left!important}
-  .home-backed-marquee-section .home-backer-logo-item{flex-basis:118px!important;min-width:118px!important;width:118px!important;height:52px!important;padding:8px 10px!important;border-radius:11px!important}
-  .home-backed-marquee-section .home-backer-logo-item img{max-width:72px!important;max-height:22px!important}
-  .home-backed-marquee-section .home-backer-logo-item span{font-size:7px!important}
-}
+/* Backed-by marquee overrides refactored globally at the end of the file. */
 
 /* =========================================================
    v3.5 — source-close Backed by marquee + header without cart
@@ -1019,149 +964,215 @@ body{font-optical-sizing:auto}
   }
 }
 
-/* Source markup supplied for the "Backed by" rail. */
-.home-backed-marquee-section{
-  overflow:hidden!important;
-  background-color:var(--surface-2)!important;
-}
-.home-backed-marquee-section .site-shell{
-  max-width:none!important;
-}
-.home-backed-marquee-section .home-backed-content{
-  position:relative!important;
-  z-index:1!important;
-}
-.home-backed-marquee-section .home-backed-heading{
-  margin:0 0 18px!important;
-  font-family:var(--font-display)!important;
-  font-size:20px!important;
-  font-weight:500!important;
-  line-height:1.25!important;
-  letter-spacing:-.015em!important;
-  text-transform:none!important;
-  text-align:left!important;
-  color:var(--ink-primary)!important;
-}
-.home-backed-marquee-section .home-backed-marquee-fade{
-  position:relative!important;
-  inset:auto!important;
-  z-index:auto!important;
-  overflow:visible!important;
-  background:none!important;
-  pointer-events:auto!important;
-}
-.home-backed-marquee-section .home-backed-marquee{
-  position:relative!important;
-  overflow:hidden!important;
-  margin-inline:calc(-1 * var(--container-px))!important;
-  padding-inline:var(--container-px)!important;
-}
-.home-backed-marquee-section .home-backed-marquee-track{
-  display:flex!important;
-  align-items:stretch!important;
-  width:max-content!important;
-  animation:mentra-marquee 38s linear infinite!important;
-  will-change:transform;
-}
-.home-backed-marquee-section .home-backer-logo-strip{
-  display:flex!important;
-  align-items:stretch!important;
-  gap:16px!important;
-  padding-right:16px!important;
-}
-.home-backed-marquee-section .home-backer-logo-item{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:14px!important;
-  flex:0 0 314px!important;
-  width:314px!important;
-  min-width:314px!important;
-  height:128px!important;
-  padding:24px 28px!important;
-  border:1px solid rgba(15,23,42,.10)!important;
-  border-radius:24px!important;
-  background:var(--surface-0)!important;
-  box-shadow:0 2px 6px rgba(15,23,42,.035)!important;
-}
-.home-backed-marquee-section .home-backer-logo-item img{
-  display:block!important;
-  width:auto!important;
-  height:auto!important;
-  max-width:136px!important;
-  max-height:38px!important;
-  object-fit:contain!important;
-  filter:none!important;
-  opacity:1!important;
-  visibility:visible!important;
-  mix-blend-mode:normal!important;
-}
-.home-backed-marquee-section .home-backer-logo-item img[alt="YouTube"]{max-width:120px!important;max-height:32px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Pebble"]{max-width:112px!important;max-height:30px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Android"]{max-width:120px!important;max-height:34px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Y Combinator"]{max-width:128px!important;max-height:36px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Amazon"]{max-width:98px!important;max-height:34px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Hartmann Capital"]{max-width:116px!important;max-height:32px!important}
-.home-backed-marquee-section .home-backer-logo-item img[alt="Toyota Ventures"]{max-width:118px!important;max-height:34px!important}
-.home-backed-marquee-section .home-backer-logo-item span{
-  flex:0 0 auto!important;
-  font-family:var(--font-display)!important;
-  font-size:14px!important;
-  font-weight:500!important;
-  line-height:1!important;
-  color:var(--ink-tertiary)!important;
-  white-space:nowrap!important;
-}
-.home-backed-marquee-section .home-backed-marquee-fade::before,
-.home-backed-marquee-section .home-backed-marquee-fade::after{
-  content:"";
-  position:absolute;
-  top:0;
-  bottom:0;
-  width:72px;
-  z-index:3;
-  pointer-events:none;
-}
-.home-backed-marquee-section .home-backed-marquee-fade::before{
-  left:calc(-1 * var(--container-px));
-  background:linear-gradient(90deg,var(--surface-2),rgba(233,235,230,0));
-}
-.home-backed-marquee-section .home-backed-marquee-fade::after{
-  right:calc(-1 * var(--container-px));
-  background:linear-gradient(270deg,var(--surface-2),rgba(233,235,230,0));
-}
-.home-backed-marquee-section .home-backed-marquee:hover .home-backed-marquee-track{
-  animation-play-state:paused;
+/* =========================================================
+   Backed-by Section - Static Centered Logo Strip
+   ========================================================= */
+
+.home-backed-marquee-section {
+  overflow: visible !important;
+  background-color: var(--surface-2) !important;
+  padding: 32px var(--container-px) !important;
 }
 
-@media(max-width:767px){
-  .home-backed-marquee-section .home-backed-heading{
-    margin-bottom:12px!important;
-    font-size:15px!important;
+.home-backed-marquee-section .site-shell {
+  max-width: var(--site-max-width) !important;
+  margin: 0 auto !important;
+}
+
+.home-backed-marquee-section .home-backed-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+}
+
+.home-backed-marquee-section .home-backed-heading {
+  margin: 0 0 16px 0 !important;
+  font-family: var(--font-display) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  color: var(--ink-secondary) !important;
+}
+
+/* Neutralize marquee-specific fade gradients */
+.home-backed-marquee-section .home-backed-marquee-fade {
+  position: relative !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+.home-backed-marquee-section .home-backed-marquee-fade::before,
+.home-backed-marquee-section .home-backed-marquee-fade::after {
+  display: none !important;
+}
+
+/* Neutralize marquee scrolling track */
+.home-backed-marquee-section .home-backed-marquee {
+  overflow: visible !important;
+  width: 100% !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+.home-backed-marquee-section .home-backed-marquee-track {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  animation: none !important;
+  transform: none !important;
+  gap: 28px 40px !important;
+}
+
+.home-backed-marquee-section .home-backer-logo-strip {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 0 !important;
+  gap: 28px 40px !important;
+}
+
+/* Hide the duplicate logo strip used for marquee looping */
+.home-backed-marquee-section .home-backer-logo-strip[aria-hidden="true"] {
+  display: none !important;
+}
+
+/* Style individual logo items as clean transparent inline elements */
+.home-backed-marquee-section .home-backer-logo-item {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 0 1 auto !important;
+}
+
+.home-backed-marquee-section .home-backer-logo-item span {
+  display: block !important;
+  text-align: center !important;
+  font-family: var(--font-display) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: var(--ink-tertiary) !important;
+  white-space: nowrap !important;
+}
+
+.home-backed-marquee-section .home-backer-logo-item img {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  filter: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Precise desktop logo sizing */
+.home-backed-marquee-section .home-backer-logo-item img[alt="YouTube"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Pebble"] {
+  max-width: 90px !important;
+  max-height: 22px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Android"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Y Combinator"] {
+  max-width: 110px !important;
+  max-height: 26px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Amazon"] {
+  max-width: 80px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Hartmann Capital"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+.home-backed-marquee-section .home-backer-logo-item img[alt="Toyota Ventures"] {
+  max-width: 100px !important;
+  max-height: 24px !important;
+}
+
+/* Tablet & Mobile responsive behavior */
+@media (max-width: 1024px) {
+  .home-backed-marquee-section {
+    padding: 24px var(--container-px) !important;
   }
-  .home-backed-marquee-section .home-backer-logo-strip{
-    gap:10px!important;
-    padding-right:10px!important;
+  .home-backed-marquee-section .home-backed-marquee-track,
+  .home-backed-marquee-section .home-backer-logo-strip {
+    gap: 20px 32px !important;
   }
-  .home-backed-marquee-section .home-backer-logo-item{
-    flex-basis:190px!important;
-    width:190px!important;
-    min-width:190px!important;
-    height:78px!important;
-    padding:14px 16px!important;
-    gap:8px!important;
-    border-radius:16px!important;
+}
+
+@media (max-width: 767px) {
+  .home-backed-marquee-section {
+    padding: 20px var(--container-px) !important;
   }
-  .home-backed-marquee-section .home-backer-logo-item img{
-    max-width:88px!important;
-    max-height:27px!important;
+  .home-backed-marquee-section .home-backed-heading {
+    font-size: 11px !important;
+    margin-bottom: 12px !important;
+    letter-spacing: 0.18em !important;
   }
-  .home-backed-marquee-section .home-backer-logo-item span{
-    font-size:9px!important;
+  .home-backed-marquee-section .home-backed-marquee-track,
+  .home-backed-marquee-section .home-backer-logo-strip {
+    gap: 16px 20px !important;
   }
-  .home-backed-marquee-section .home-backed-marquee-fade::before,
-  .home-backed-marquee-section .home-backed-marquee-fade::after{
-    width:34px;
+  .home-backed-marquee-section .home-backer-logo-item {
+    gap: 4px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item span {
+    font-size: 9px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="YouTube"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Pebble"] {
+    max-width: 70px !important;
+    max-height: 16px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Android"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Y Combinator"] {
+    max-width: 85px !important;
+    max-height: 20px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Amazon"] {
+    max-width: 65px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Hartmann Capital"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
+  }
+  .home-backed-marquee-section .home-backer-logo-item img[alt="Toyota Ventures"] {
+    max-width: 80px !important;
+    max-height: 18px !important;
   }
 }
 .mentra-header-end-spacer{display:block;flex:0 0 44px;width:44px;height:44px;margin-right:-4px;pointer-events:none}
@@ -1874,6 +1885,11 @@ body{font-optical-sizing:auto}
   }
 }
 
-
-
-
+/* Newsletter reCAPTCHA centering and spacing */
+form[data-mentra-newsletter="1"] .mentra-recaptcha {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 12px auto 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
